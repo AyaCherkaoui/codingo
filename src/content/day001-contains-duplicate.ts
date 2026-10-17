@@ -23,5 +23,20 @@ export const day1: Lesson = {
       steps: ['Create empty set', 'Loop over nums', 'If n in set, return true', 'Add n to set', 'Return false'],
       explain: 'Check before adding, otherwise every value looks like a duplicate.',
     },
+    {
+      type: 'blank',
+      prompt: 'Fill in the blank',
+      code: 'seen = set()\nfor n in nums:\n    if n in ___:\n        return True',
+      options: ['seen', 'nums', 'set'],
+      answer: 'seen',
+      explain: 'We check the set of values we have already seen.',
+    },
+    {
+      type: 'bug',
+      prompt: 'Tap the buggy line',
+      lines: ['seen = set()', 'for n in nums:', '    seen.add(n)', '    if n in seen:', '        return True', 'return False'],
+      buggyLine: 2,
+      explain: 'Adding before checking makes every number look like a duplicate.',
+    },
   ],
 };
