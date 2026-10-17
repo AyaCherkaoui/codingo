@@ -52,3 +52,9 @@ The app shows a "Continue with Google / GitHub" button only for providers you ha
 3. **GitHub**: GitHub > Settings > Developer settings > OAuth Apps > New. Homepage URL = your web address, callback URL = `https://<your-project>.supabase.co/auth/v1/callback`. Paste the client ID and a generated secret into Supabase > Providers > GitHub and enable it.
 
 LeetCode has no "sign in with" option, so it can't be used as a login provider.
+
+**Already done for you:** the Supabase Site URL and redirect URLs (step 1) are set via `supabase/config.toml`. After creating the Google/GitHub apps, enable them with one command (after `npx supabase login`):
+```
+GITHUB_CLIENT_ID=... GITHUB_SECRET=... GOOGLE_CLIENT_ID=... GOOGLE_SECRET=... scripts/enable-oauth.sh
+```
+Use only the pairs you have. The buttons then appear in the app automatically.
