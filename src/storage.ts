@@ -7,6 +7,7 @@ export interface Progress {
   hearts: number; heartsAt: number;
   reviews: Record<string, Review>;
   onboarded: boolean; reminderOn: boolean; reminderHour: number;
+  soundOn: boolean; freezes: number;
 }
 
 export const HEART_MAX = 5;
@@ -18,7 +19,9 @@ export const empty: Progress = {
   xp: 0, streak: 0, bestStreak: 0, lastDay: null, completed: [],
   hearts: HEART_MAX, heartsAt: 0, reviews: {},
   onboarded: false, reminderOn: true, reminderHour: 19,
+  soundOn: true, freezes: 1,
 };
+export const MAX_FREEZES = 2;
 
 const dayStr = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 export const today = () => dayStr(Date.now());
@@ -49,10 +52,13 @@ export function dueReviews(p: Progress): string[] {
   return p.completed.filter(id => p.reviews[id] && p.reviews[id].due <= t);
 }
 
-function touchStreak(p: Progress): Pick<Progress, 'streak' | 'bestStreak' | 'lastDay'> {
+// Every 7-day streak milestone earns a streak freeze (max 2).
+function touchStreak(p: Progress): Pick<Progress, 'streak' | 'bestStreak' | 'lastDay' | 'freezes'> {
   const t = today();
-  const streak = p.lastDay === t ? p.streak : p.streak + 1;
-  return { streak, bestStreak: Math.max(p.bestStreak, streak), lastDay: t };
+  const first = p.lastDay !== t;
+  const streak = first ? p.streak + 1 : p.streak;
+  const earned = first && streak % 7 === 0 ? 1 : 0;
+  return { streak, bestStreak: Math.max(p.bestStreak, streak), lastDay: t, freezes: Math.min(MAX_FREEZES, p.freezes + earned) };
 }
 
 export function finishLesson(p: Progress, id: string, xp: number): Progress {
@@ -78,7 +84,11 @@ export async function load(): Promise<Progress> {
   let p: Progress = raw ? { ...empty, ...JSON.parse(raw) } : { ...empty, heartsAt: Date.now() };
   if (p.lastDay) {
     const gap = (Date.parse(today()) - Date.parse(p.lastDay)) / 86400000;
-    if (gap > 1) p = { ...p, streak: 0 };
+    const missed = gap - 1; // whole days skipped
+    if (missed > 0) {
+      if (p.freezes >= missed) p = { ...p, freezes: p.freezes - missed, lastDay: dayStr(Date.now() - 86400000) }; // freezes cover the gap
+      else p = { ...p, streak: 0 };
+    }
   }
   return refreshHearts(p);
 }

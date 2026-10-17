@@ -18,8 +18,17 @@ export function SettingsTab({ progress, onChange, onReset, account, onSignOut }:
         <View style={s.card}>
           <Pressable onPress={() => onChange({ reminderOn: !progress.reminderOn })} style={s.row}>
             <Text style={s.label}>Daily reminder</Text>
-            <Text style={[s.val, { color: progress.reminderOn ? c.green : c.mute }]}>{progress.reminderOn ? 'ON' : 'OFF'}</Text>
+            <Text style={[s.val, { color: progress.reminderOn ? c.primary : c.mute }]}>{progress.reminderOn ? 'ON' : 'OFF'}</Text>
           </Pressable>
+          <Pressable onPress={() => onChange({ soundOn: !progress.soundOn })} style={s.row}>
+            <Text style={s.label}>Sound effects</Text>
+            <Text style={[s.val, { color: progress.soundOn ? c.primaryLight : c.mute }]}>{progress.soundOn ? 'ON' : 'OFF'}</Text>
+          </Pressable>
+          <View style={s.row}>
+            <Text style={s.label}>Streak freezes 🧊</Text>
+            <Text style={s.val}>{progress.freezes} / 2</Text>
+          </View>
+          <Text style={s.note}>A freeze saves your streak if you miss a day. You earn one every 7-day streak.</Text>
           <View style={s.row}>
             <Text style={s.label}>Reminder time</Text>
             <View style={s.step}>
@@ -36,7 +45,7 @@ export function SettingsTab({ progress, onChange, onReset, account, onSignOut }:
             <Text style={s.note}>Your progress syncs to the cloud automatically.</Text>
             <View style={{ height: 12 }} /><Button label="Sign out" color={c.blue} shadow="#1590c8" onPress={onSignOut} />
           </View>)}
-        <Button label={confirm ? 'Tap again to erase everything' : 'Reset progress'} color={c.red} shadow={c.redDark}
+        <Button label={confirm ? 'Tap again to erase everything' : 'Reset progress'} color={c.bad} shadow={c.badDark}
           onPress={() => { if (confirm) { setConfirm(false); onReset(); } else setConfirm(true); }} />
       </ScrollView>
     </SafeAreaView>);

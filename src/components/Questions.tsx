@@ -1,38 +1,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { c } from '../theme';
+import { tap } from '../feedback';
 import { Question } from '../content/types';
 
-interface Props { q: Question; locked: boolean; onChange: (correct: boolean | null) => void }
+interface Props { q: Question; locked: boolean; onChange: (correct: boolean | null) => void; eliminated?: number | string | null }
 
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
-function Option({ label, selected, locked, onPress, mono }:
-  { label: string; selected: boolean; locked: boolean; onPress: () => void; mono?: boolean }) {
+function Option({ label, selected, locked, onPress, mono, dim }:
+  { label: string; selected: boolean; locked: boolean; onPress: () => void; mono?: boolean; dim?: boolean }) {
   return (
-    <Pressable disabled={locked} onPress={onPress}
-      style={[s.opt, selected && { borderColor: c.blue, backgroundColor: '#1a3a4a' }]}>
+    <Pressable disabled={locked || dim} onPress={onPress}
+      style={[s.opt, selected && { borderColor: c.primaryLight, backgroundColor: '#2a2160' }, dim && { opacity: 0.2 }]}>
       <Text style={[s.optTxt, mono && { fontFamily: 'Menlo' }]}>{label}</Text>
     </Pressable>
   );
 }
 
-function Choice({ q, locked, onChange }: Props & { q: Extract<Question, { type: 'choice' }> }) {
+function Choice({ q, locked, onChange, eliminated }: Props & { q: Extract<Question, { type: 'choice' }> }) {
   const [sel, setSel] = useState<number | null>(null);
   return <View>{q.options.map((o, i) => (
-    <Option key={i} label={o} selected={sel === i} locked={locked}
-      onPress={() => { setSel(i); onChange(i === q.answer); }} />))}</View>;
+    <Option key={i} label={o} selected={sel === i} locked={locked} dim={eliminated === i}
+      onPress={() => { tap(); setSel(i); onChange(i === q.answer); }} />))}</View>;
 }
 
-function Blank({ q, locked, onChange }: Props & { q: Extract<Question, { type: 'blank' }> }) {
+function Blank({ q, locked, onChange, eliminated }: Props & { q: Extract<Question, { type: 'blank' }> }) {
   const [sel, setSel] = useState<string | null>(null);
   const [pre, post] = q.code.split('___');
   return (
     <View>
       <View style={s.code}><Text style={s.codeTxt}>{pre}<Text style={{ color: c.blue }}>{sel ?? '_____'}</Text>{post}</Text></View>
       {q.options.map(o => (
-        <Option key={o} mono label={o} selected={sel === o} locked={locked}
-          onPress={() => { setSel(o); onChange(o === q.answer); }} />))}
+        <Option key={o} mono label={o} selected={sel === o} locked={locked} dim={eliminated === o}
+          onPress={() => { tap(); setSel(o); onChange(o === q.answer); }} />))}
     </View>
   );
 }
@@ -40,8 +41,8 @@ function Blank({ q, locked, onChange }: Props & { q: Extract<Question, { type: '
 function Bug({ q, locked, onChange }: Props & { q: Extract<Question, { type: 'bug' }> }) {
   const [sel, setSel] = useState<number | null>(null);
   return <View style={s.code}>{q.lines.map((l, i) => (
-    <Pressable key={i} disabled={locked} onPress={() => { setSel(i); onChange(i === q.buggyLine); }}
-      style={[s.line, sel === i && { backgroundColor: '#1a3a4a' }]}>
+    <Pressable key={i} disabled={locked} onPress={() => { tap(); setSel(i); onChange(i === q.buggyLine); }}
+      style={[s.line, sel === i && { backgroundColor: '#2a2160' }]}>
       <Text style={s.codeTxt}>{l}</Text>
     </Pressable>))}</View>;
 }
@@ -59,7 +60,7 @@ function Order({ q, locked, onChange }: Props & { q: Extract<Question, { type: '
           style={[s.opt, { borderColor: c.blue }]}><Text style={[s.optTxt, q.code && { fontFamily: 'Menlo' }]}>{q.code ? p : `${i + 1}. ${p}`}</Text></Pressable>))}</View>
       <View style={s.divider} />
       {bank.filter(b => !picked.includes(b)).map(b => (
-        <Option key={b} mono={q.code} label={b} selected={false} locked={locked} onPress={() => setPicked([...picked, b])} />))}
+        <Option key={b} mono={q.code} label={b} selected={false} locked={locked} onPress={() => { tap(); setPicked([...picked, b]); }} />))}
     </View>
   );
 }
@@ -79,7 +80,7 @@ export function QuestionView(props: Props) {
 
 const s = StyleSheet.create({
   prompt: { color: c.text, fontSize: 22, fontWeight: '800', marginBottom: 20 },
-  opt: { borderWidth: 2, borderBottomWidth: 4, borderColor: c.line, borderRadius: 14, padding: 15, marginBottom: 10, backgroundColor: c.card },
+  opt: { borderWidth: 2, borderBottomWidth: 4, borderColor: c.line, borderRadius: 16, padding: 15, marginBottom: 10, backgroundColor: c.card },
   optTxt: { color: c.text, fontSize: 16, fontWeight: '600' },
   code: { backgroundColor: c.card, borderRadius: 14, padding: 12, marginBottom: 14 },
   codeTxt: { color: c.text, fontFamily: 'Menlo', fontSize: 14 },

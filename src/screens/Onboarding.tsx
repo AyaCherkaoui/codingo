@@ -1,27 +1,34 @@
 import React from 'react';
 import { SafeAreaView, Text, View, StyleSheet } from 'react-native';
+import { Appear } from '../components/Appear';
+import { Bubble } from '../components/Bubble';
 import { Button } from '../components/Button';
+import { Logo } from '../components/Logo';
+import { Mascot } from '../components/Mascot';
+import { TAGLINE } from '../brand';
 import { c } from '../theme';
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.center}>
-        <Text style={{ fontSize: 72 }}>🧩</Text>
-        <Text style={s.title}>Welcome to Codingo</Text>
-        <Text style={s.body}>250 problems. 250 days. 5 minutes a day.</Text>
-        <Text style={s.item}>📚 Learn the idea in a few cards</Text>
-        <Text style={s.item}>👆 Answer by tapping, no typing</Text>
-        <Text style={s.item}>🔥 Keep your streak, earn XP and badges</Text>
-        <Text style={s.item}>🔁 Old lessons come back so you remember</Text>
+        <Appear from="scale"><Logo size={34} /></Appear>
+        <Text style={s.tag}>{TAGLINE}</Text>
+        <View style={{ marginTop: 18, alignItems: 'center' }}>
+          <Appear delay={200}><Bubble style={{ marginBottom: 14 }}>Hi, I'm Bracey! I'll walk you through 250 LeetCode problems, 5 minutes a day.</Bubble></Appear>
+          <Mascot size={170} mood="happy" />
+        </View>
+        <View style={{ marginTop: 22 }}>
+          {['📚 Short cards teach the pattern', '👆 Tap to answer. No typing code', '⚡ Combos, XP, streaks and badges', '🔁 Old lessons come back so they stick'].map((t, i) => (
+            <Appear key={t} delay={350 + i * 90} from="left"><Text style={s.item}>{t}</Text></Appear>))}
+        </View>
       </View>
-      <View style={{ padding: 20 }}><Button label="Let's go" onPress={onDone} /></View>
+      <View style={{ padding: 20 }}><Button label="Let's ship" onPress={onDone} /></View>
     </SafeAreaView>);
 }
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
-  center: { flex: 1, justifyContent: 'center', padding: 28 },
-  title: { color: c.text, fontSize: 32, fontWeight: '900', marginTop: 10 },
-  body: { color: c.green, fontSize: 18, fontWeight: '800', marginVertical: 14 },
-  item: { color: c.text, fontSize: 17, marginVertical: 6 },
+  center: { flex: 1, justifyContent: 'center', padding: 24 },
+  tag: { color: c.good, fontSize: 16, fontWeight: '800', marginTop: 6 },
+  item: { color: c.text, fontSize: 16, marginVertical: 5, fontWeight: '600' },
 });

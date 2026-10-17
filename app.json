@@ -1,28 +1,44 @@
 {
   "expo": {
-    "name": "codingo",
-    "slug": "codingo",
+    "name": "Bracey",
+    "slug": "bracey",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ayacherkaoui.bracey",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0d0a1f",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ayacherkaoui.bracey"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#0d0a1f",
+      "name": "Bracey",
+      "themeColor": "#7c5cff"
     },
     "plugins": [
-      "expo-status-bar"
-    ]
+      "expo-status-bar",
+      "expo-audio"
+    ],
+    "scheme": "bracey",
+    "backgroundColor": "#0d0a1f",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d0a1f"
+    }
   }
 }

@@ -95,7 +95,7 @@ function Friends({ uid, me, progress }: { uid: string; me: Profile; progress: Pr
 
       <Text style={s.sec}>Leaderboard</Text>
       {board.map((b, i) => (
-        <View key={b.id} style={[s.row, b.id === me.id && { borderColor: c.green, borderWidth: 2 }]}>
+        <View key={b.id} style={[s.row, b.id === me.id && { borderColor: c.primary, borderWidth: 2 }]}>
           <Text style={s.rank}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</Text>
           <Text style={[s.name, { flex: 1 }]}>{b.username}</Text>
           <Text style={{ color: c.orange, fontWeight: '800' }}>🔥{b.streak}</Text>
@@ -132,12 +132,12 @@ const s = StyleSheet.create({
   input: { backgroundColor: c.card, color: c.text, borderRadius: 14, borderWidth: 2, borderColor: c.line, padding: 14, fontSize: 16, marginBottom: 12 },
   link: { color: c.blue, textAlign: 'center', marginTop: 16, fontWeight: '700' },
   addRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  addBtn: { backgroundColor: c.green, paddingHorizontal: 18, paddingVertical: 15, borderRadius: 14 },
+  addBtn: { backgroundColor: c.primary, paddingHorizontal: 18, paddingVertical: 15, borderRadius: 14 },
   addTxt: { color: '#fff', fontWeight: '900' },
   sec: { color: c.mute, fontWeight: '900', letterSpacing: 1, marginTop: 24, marginBottom: 10, textTransform: 'uppercase' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.card, borderRadius: 14, padding: 14, marginBottom: 8 },
   rank: { width: 28, color: c.text, fontWeight: '900', fontSize: 16 },
   name: { color: c.text, fontWeight: '700', fontSize: 16 },
-  yes: { color: c.green, fontWeight: '900' },
-  no: { color: c.red, fontWeight: '900', fontSize: 18, paddingHorizontal: 6 },
+  yes: { color: c.primary, fontWeight: '900' },
+  no: { color: c.bad, fontWeight: '900', fontSize: 18, paddingHorizontal: 6 },
 });

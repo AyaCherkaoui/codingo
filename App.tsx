@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SafeAreaView, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { lessonByDay } from './src/content/lessons';
 import { Lesson } from './src/content/types';
@@ -10,7 +10,8 @@ import { FriendsTab } from './src/screens/FriendsTab';
 import { BadgesTab } from './src/screens/BadgesTab';
 import { SettingsTab } from './src/screens/SettingsTab';
 import { Onboarding } from './src/screens/Onboarding';
-import { Button } from './src/components/Button';
+import { Celebrate } from './src/components/Celebrate';
+import { setSoundOn } from './src/sound';
 import { Tab, TabBar } from './src/components/TabBar';
 import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLesson, finishReview, dueReviews, level } from './src/storage';
 import { badges, earnedIds } from './src/badges';
@@ -46,7 +47,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    load().then(p => { ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
+    load().then(p => { setSoundOn(p.soundOn); ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
     let unsub: (() => void) | undefined;
     if (supabase) {
       const sync = async (id: string | null) => {
@@ -102,16 +103,10 @@ export default function App() {
     </>);
 
   if (toast) return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+    <>
       <StatusBar style="light" />
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ fontSize: 72 }}>{toast.levelUp ? '🆙' : '🏆'}</Text>
-        {toast.levelUp && <Text style={{ color: c.blue, fontSize: 30, fontWeight: '900', marginTop: 8 }}>Level {toast.levelUp}!</Text>}
-        {toast.badges.length > 0 && <Text style={{ color: c.gold, fontSize: 20, fontWeight: '900', marginTop: 16 }}>New badge{toast.badges.length > 1 ? 's' : ''}</Text>}
-        {toast.badges.map(b => <Text key={b} style={{ color: c.text, fontSize: 20, marginTop: 6 }}>{b}</Text>)}
-      </View>
-      <View style={{ padding: 20 }}><Button label="Continue" onPress={() => setToast(null)} /></View>
-    </SafeAreaView>);
+      <Celebrate levelUp={toast.levelUp} badges={toast.badges} onDone={() => setToast(null)} />
+    </>);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -122,7 +117,7 @@ export default function App() {
         {tab === 'friends' && <FriendsTab uid={uid} profile={profile} progress={progress} onProfile={setProfile} />}
         {tab === 'badges' && <BadgesTab progress={progress} />}
         {tab === 'me' && <SettingsTab progress={progress}
-          onChange={patch => { const p = update(x => ({ ...x, ...patch })); scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
+          onChange={patch => { if (patch.soundOn !== undefined) setSoundOn(patch.soundOn); const p = update(x => ({ ...x, ...patch })); scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
           account={profile?.username ?? null} onSignOut={() => signOut()}
           onReset={async () => { await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }} />}
       </View>

@@ -7,7 +7,7 @@ export async function scheduleDailyReminder(hour: number, enabled: boolean) {
     const perm = await N.requestPermissionsAsync();
     if (!perm.granted) return;
     await N.scheduleNotificationAsync({
-      content: { title: '🔥 Keep your streak alive', body: "Today's lesson takes 5 minutes." },
+      content: { title: 'Bracey misses you 🔥', body: "Ship today's problem and keep your streak alive. 5 minutes." },
       trigger: { type: 'daily', hour, minute: 0 },
     });
   } catch {}
