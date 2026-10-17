@@ -14,11 +14,14 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 4. Reward: XP, streak, hearts, level-up animation
 
 ## Roadmap
-- [x] v0: lesson screen + question types + XP/streak/hearts
-- [x] v1: skill tree with all 250 problems in order, haptics, daily 7pm reminder
-- [ ] Lessons written: 5 of 250 (Concatenation of Array, Contains Duplicate, Valid Anagram, Two Sum, Longest Common Prefix, Group Anagrams, Top K Frequent) (add more in `src/content/lessons.ts`)
-- [ ] v2: spaced repetition review, daily reminder notifications
-- [ ] v3: all 250 problems, one per day
+- [x] Skill tree with all 250 problems
+- [x] Question types: choice, order, fill blank, spot the bug, code builder (order with code)
+- [x] Hearts that refill (1 per 30 min), hints, XP, levels, streaks
+- [x] Spaced review (1, 3, 7, 14, 30 days)
+- [x] Badges, onboarding, settings, daily reminder
+- [x] Lessons written: days 1-35 (Arrays & Hashing, Two Pointers)
+- [ ] Lessons for days 36-250
+- [ ] Sounds, streak freeze, TestFlight build
 
 ## Content
 Lessons live in `src/content/` as JSON/TS. See `src/content/types.ts`.

@@ -1,13 +1,14 @@
-// Daily streak reminder at 19:00. Fails silently where unsupported (e.g. web).
-export async function scheduleDailyReminder() {
+// Daily streak reminder. Fails silently where unsupported (e.g. web).
+export async function scheduleDailyReminder(hour: number, enabled: boolean) {
   try {
     const N = require('expo-notifications');
+    await N.cancelAllScheduledNotificationsAsync();
+    if (!enabled) return;
     const perm = await N.requestPermissionsAsync();
     if (!perm.granted) return;
-    await N.cancelAllScheduledNotificationsAsync();
     await N.scheduleNotificationAsync({
       content: { title: '🔥 Keep your streak alive', body: "Today's lesson takes 5 minutes." },
-      trigger: { type: 'daily', hour: 19, minute: 0 },
+      trigger: { type: 'daily', hour, minute: 0 },
     });
   } catch {}
 }

@@ -56,10 +56,10 @@ function Order({ q, locked, onChange }: Props & { q: Extract<Question, { type: '
     <View>
       <View style={s.slots}>{picked.map((p, i) => (
         <Pressable key={p} disabled={locked} onPress={() => setPicked(picked.filter(x => x !== p))}
-          style={[s.opt, { borderColor: c.blue }]}><Text style={s.optTxt}>{i + 1}. {p}</Text></Pressable>))}</View>
+          style={[s.opt, { borderColor: c.blue }]}><Text style={[s.optTxt, q.code && { fontFamily: 'Menlo' }]}>{q.code ? p : `${i + 1}. ${p}`}</Text></Pressable>))}</View>
       <View style={s.divider} />
       {bank.filter(b => !picked.includes(b)).map(b => (
-        <Option key={b} label={b} selected={false} locked={locked} onPress={() => setPicked([...picked, b])} />))}
+        <Option key={b} mono={q.code} label={b} selected={false} locked={locked} onPress={() => setPicked([...picked, b])} />))}
     </View>
   );
 }
