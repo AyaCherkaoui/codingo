@@ -19,9 +19,12 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 - [x] Hearts that refill (1 per 30 min), hints, XP, levels, streaks
 - [x] Spaced review (1, 3, 7, 14, 30 days)
 - [x] Badges, onboarding, settings, daily reminder
-- [x] Lessons written: days 1-35 (Arrays & Hashing, Two Pointers)
-- [ ] Lessons for days 36-250
+- [x] All 250 lessons written (3 questions each, hints on some)
+- [x] Accounts, cloud sync, friends and leaderboard (Supabase)
+- [x] Animations: confetti, shake, sliding feedback sheet, pulsing current node
+- [x] Share progress and invite friends
 - [ ] Sounds, streak freeze, TestFlight build
+- [ ] More hints, richer questions per lesson
 
 ## Content
 Lessons live in `src/content/` as JSON/TS. See `src/content/types.ts`.
@@ -32,3 +35,8 @@ npm install
 npx expo start
 ```
 Scan the QR code with Expo Go.
+
+## Online features (Supabase)
+1. Create a project at supabase.com and run `supabase/schema.sql` in the SQL editor (or `supabase db push`).
+2. Copy `.env.example` to `.env` and fill in the project URL and anon key.
+3. Restart `npx expo start`. Without these keys the app works fully offline.

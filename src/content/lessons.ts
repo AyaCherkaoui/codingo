@@ -13,7 +13,11 @@ import { graphs } from './graphs';
 import { advancedGraphs } from './advancedGraphs';
 import { dp1 } from './dp1';
 import { dp2 } from './dp2';
+import { greedy } from './greedy';
+import { intervals } from './intervals';
+import { bit } from './bit';
+import { math } from './math';
 
-export const allLessons: Lesson[] = [...arraysHashing, ...twoPointers, ...slidingWindow, ...binarySearch, ...linkedList, ...stack, ...trees, ...tries, ...backtracking, ...heap, ...graphs, ...advancedGraphs, ...dp1, ...dp2];
+export const allLessons: Lesson[] = [...arraysHashing, ...twoPointers, ...slidingWindow, ...binarySearch, ...linkedList, ...stack, ...trees, ...tries, ...backtracking, ...heap, ...graphs, ...advancedGraphs, ...dp1, ...dp2, ...greedy, ...intervals, ...bit, ...math];
 export const lessonByDay = new Map<number, Lesson>(allLessons.map(l => [l.day, l]));
 export const lessonById = new Map<string, Lesson>(allLessons.map(l => [l.id, l]));
