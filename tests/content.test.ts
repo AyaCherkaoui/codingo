@@ -14,7 +14,8 @@ describe('curriculum content', () => {
     for (const l of lessons) {
       const where = `day ${l.day} ${l.problem}`;
       expect(l.teach.length, where).toBeGreaterThan(0);
-      expect(l.questions.length, where).toBeGreaterThanOrEqual(3);
+      expect(l.questions.length, where).toBeGreaterThanOrEqual(4);
+      for (const q of l.questions) { expect(q.hint, `${where}: missing hint on "${q.prompt}"`).toBeTruthy(); expect((q.hint ?? '').length, where).toBeLessThanOrEqual(140); }
       for (const q of l.questions) {
         expect(q.prompt, where).toBeTruthy(); expect(q.explain, where).toBeTruthy();
         if (q.type === 'choice') {

@@ -17,7 +17,7 @@ import { c, ICON } from '../theme';
 function hintText(q: Question): string {
   if (q.hint) return q.hint;
   if (q.type === 'order') return `The first step is: ${q.steps[0]}`;
-  if (q.type === 'bug') { const half = Math.ceil(q.lines.length / 2); return q.buggyLine < half ? `The bug is in the first half (lines 1-${half}).` : `The bug is in the second half (lines ${half + 1}-${q.lines.length}).`; }
+  if (q.type === 'bug') { const half = Math.ceil(q.lines.length / 2); return q.buggyLine < half ? 'The bug is in the top half of the code.' : 'The bug is in the bottom half of the code.'; }
   return 'One wrong answer removed.';
 }
 
