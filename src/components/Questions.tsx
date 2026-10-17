@@ -6,7 +6,15 @@ import { Question } from '../content/types';
 
 interface Props { q: Question; locked: boolean; onChange: (correct: boolean | null) => void; eliminated?: number | string | null }
 
-const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
+// Fisher-Yates; for 2+ items never returns the original order (so "order" questions don't start solved).
+const shuffle = <T,>(a: T[]) => {
+  const r = [...a];
+  for (let tries = 0; tries < 5; tries++) {
+    for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+    if (r.length < 2 || r.some((x, i) => x !== a[i])) break;
+  }
+  return r;
+};
 
 function Option({ label, selected, locked, onPress, mono, dim }:
   { label: string; selected: boolean; locked: boolean; onPress: () => void; mono?: boolean; dim?: boolean }) {

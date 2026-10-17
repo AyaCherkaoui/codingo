@@ -13,6 +13,14 @@ import { shareText, REPO } from '../share';
 import { LOSE, WIN, pick } from '../brand';
 import { c, ICON } from '../theme';
 
+// Written hint if the lesson has one, otherwise one derived from the question type.
+function hintText(q: Question): string {
+  if (q.hint) return q.hint;
+  if (q.type === 'order') return `The first step is: ${q.steps[0]}`;
+  if (q.type === 'bug') { const half = Math.ceil(q.lines.length / 2); return q.buggyLine < half ? `The bug is in the first half (lines 1-${half}).` : `The bug is in the second half (lines ${half + 1}-${q.lines.length}).`; }
+  return 'One wrong answer removed.';
+}
+
 export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onDone }: {
   lesson: Lesson; startHearts: number; streak: number; onWrong: () => void; onExit: () => void; onDone: (xp: number) => void;
 }) {
@@ -119,7 +127,7 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
   }
 
   const q = queue[0];
-  const canHint = !!q.hint || q.type === 'choice' || q.type === 'blank';
+  const canHint = true; // every question has a hint (written, or derived below)
   const check = () => {
     setResult(!!correct);
     if (correct) { good(); setMsg(pick(WIN)); const n = combo + 1; setCombo(n); setBestCombo(b => Math.max(b, n)); }
@@ -156,7 +164,7 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
           </Appear>
         </Animated.View>
         {canHint && result === null && (hintOn
-          ? <Text style={s.hint}>💡 {q.hint ?? 'One wrong answer removed.'}</Text>
+          ? <Text style={s.hint}>💡 {hintText(q)}</Text>
           : <Pressable onPress={useHint}><Text style={s.hintBtn}>💡 Need a hint? (−2 XP)</Text></Pressable>)}
       </ScrollView>
       {result === null ? (

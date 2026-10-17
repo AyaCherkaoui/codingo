@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { lessonByDay } from './src/content/lessons';
 import { Lesson } from './src/content/types';
@@ -13,7 +13,7 @@ import { Onboarding } from './src/screens/Onboarding';
 import { Celebrate } from './src/components/Celebrate';
 import { setSoundOn } from './src/sound';
 import { Tab, TabBar } from './src/components/TabBar';
-import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLesson, finishReview, dueReviews, level, today, freezesSpentOnLoad } from './src/storage';
+import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLesson, finishReview, dueReviews, level, today, freezesSpentOnLoad, applyMissedDays } from './src/storage';
 import { badges, earnedIds } from './src/badges';
 import { buildReview } from './src/review';
 import { scheduleDailyReminder } from './src/notify';
@@ -31,9 +31,16 @@ export default function App() {
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false);
   const ref = useRef<Progress>(empty);
   const uidRef = useRef<string | null>(null);
   const timer = useRef<any>(null);
+
+  const push = useCallback(async () => {
+    if (!uidRef.current) return;
+    const ok = await pushProgress(uidRef.current, ref.current);
+    setSyncFailed(!ok);
+  }, []);
 
   const update = useCallback((fn: (p: Progress) => Progress) => {
     const next = fn(ref.current);
@@ -42,7 +49,7 @@ export default function App() {
     save(next);
     if (uidRef.current) {
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => uidRef.current && pushProgress(uidRef.current, ref.current), 2500);
+      timer.current = setTimeout(push, 2500);
     }
     return next;
   }, []);
@@ -58,14 +65,25 @@ export default function App() {
         const remote = await pullProgress(id);
         // merge into the latest local state so progress made during the pull isn't overwritten
         const merged = update(cur => (remote ? mergeProgress(cur, remote) : cur));
-        pushProgress(id, merged);
+        push();
       };
       supabase.auth.getSession().then(({ data }) => sync(data.session?.user.id ?? null));
       const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => { sync(session?.user.id ?? null); });
       unsub = () => sub.subscription.unsubscribe();
     }
     const t = setInterval(() => { const r = refreshHearts(ref.current); if (r !== ref.current) update(() => r); }, 30000);
-    return () => { clearInterval(t); unsub?.(); };
+    // Coming back to the app (maybe after midnight): spend freezes / reset streak, refill hearts, retry sync.
+    const appSub = AppState.addEventListener('change', st => {
+      if (st !== 'active') return;
+      const fixed = refreshHearts(applyMissedDays(ref.current));
+      if (fixed !== ref.current) {
+        const spent = ref.current.freezes - fixed.freezes;
+        update(() => fixed);
+        if (spent > 0) setNotice(`🧊 ${spent} streak freeze${spent > 1 ? 's' : ''} used to save your streak!`);
+      }
+      if (uidRef.current) push();
+    });
+    return () => { clearInterval(t); unsub?.(); appSub.remove(); };
   }, []);
 
   if (!progress) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
@@ -84,7 +102,7 @@ export default function App() {
     const fresh = earnedIds(next).filter(id => !had.has(id)).map(id => badges.find(b => b.id === id)!).map(b => `${b.icon} ${b.name}`);
     const lv = level(next.xp) > level(before.xp) ? level(next.xp) : null;
     setSession(null);
-    if (uidRef.current) { clearTimeout(timer.current); pushProgress(uidRef.current, next); } // sync right away
+    clearTimeout(timer.current); push(); // sync right away
     if (fresh.length || lv) setToast({ xp, levelUp: lv, badges: fresh });
   };
 
@@ -113,8 +131,12 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style="light" />
+      {syncFailed && (
+        <Pressable onPress={push} style={{ backgroundColor: c.card, padding: 8, paddingTop: notice ? 8 : 48 }}>
+          <Text style={{ color: c.gold, fontWeight: '800', textAlign: 'center', fontSize: 12 }}>☁️ Couldn't sync. Your progress is safe on this phone. Tap to retry.</Text>
+        </Pressable>)}
       {notice && (
-        <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: c.card, padding: 12, paddingTop: 48 }}>
+        <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: c.card, padding: 12, paddingTop: syncFailed ? 12 : 48 }}>
           <Text style={{ color: c.blue, fontWeight: '800', textAlign: 'center' }}>{notice} (tap to dismiss)</Text>
         </Pressable>)}
       <View style={{ flex: 1 }}>
