@@ -33,6 +33,12 @@ describe.skipIf(!configured)('cloud (Supabase) with fake users', () => {
     }
   });
 
+  it('only offers Google/GitHub when they are enabled in Supabase', async () => {
+    const list = await C.enabledProviders();
+    expect(Array.isArray(list)).toBe(true);
+    for (const p of list) expect(['google', 'github']).toContain(p);
+  });
+
   it('rejects a wrong password and accepts the right one', async () => {
     await C.signOut();
     expect((await C.signIn(alice.email, 'wrong-password-1')).ok).toBe(false);

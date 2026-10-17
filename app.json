@@ -31,7 +31,8 @@
     },
     "plugins": [
       "expo-status-bar",
-      "expo-audio"
+      "expo-audio",
+      "expo-web-browser"
     ],
     "scheme": "bracey",
     "backgroundColor": "#0d0a1f",

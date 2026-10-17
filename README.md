@@ -41,3 +41,14 @@ Scan the QR code with Expo Go.
 1. Create a project at supabase.com and run `supabase/schema.sql` in the SQL editor (or `supabase db push`).
 2. Copy `.env.example` to `.env` and fill in the project URL and anon key.
 3. Restart `npx expo start`. Without these keys the app works fully offline.
+
+## Sign in with Google / GitHub
+The app shows a "Continue with Google / GitHub" button only for providers you have switched on in Supabase, so nothing breaks while they're off. One-time setup in the Supabase dashboard:
+
+1. **Authentication > URL Configuration**
+   - Site URL: your web address, e.g. `https://bracey.vercel.app`
+   - Redirect URLs: `https://bracey.vercel.app`, `http://localhost:8081`, `bracey://auth-callback`, and `exp://**` (for Expo Go while developing)
+2. **Google**: in Google Cloud Console > APIs & Services > Credentials, create an *OAuth client ID* (type Web). Add the authorized redirect URI `https://<your-project>.supabase.co/auth/v1/callback`. Paste the client ID and secret into Supabase > Authentication > Sign In / Providers > Google and enable it.
+3. **GitHub**: GitHub > Settings > Developer settings > OAuth Apps > New. Homepage URL = your web address, callback URL = `https://<your-project>.supabase.co/auth/v1/callback`. Paste the client ID and a generated secret into Supabase > Providers > GitHub and enable it.
+
+LeetCode has no "sign in with" option, so it can't be used as a login provider.

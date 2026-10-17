@@ -7,8 +7,10 @@ const URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 export const cloudConfigured = !!URL && !!KEY;
 
+const isWeb = typeof document !== 'undefined';
+
 export const supabase = cloudConfigured
-  ? createClient(URL, KEY, { auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false } })
+  ? createClient(URL, KEY, { auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: isWeb } })
   : null;
 
 export interface Profile { id: string; username: string; xp: number; streak: number; completed_count: number }
@@ -37,6 +39,52 @@ export async function signIn(email: string, password: string): Promise<Res<null>
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   return error ? fail(error) : ok(null);
 }
+// ---- Sign in with Google / GitHub (Supabase OAuth) ----
+export type OAuthProvider = 'google' | 'github';
+export const PROVIDER_LABEL: Record<OAuthProvider, string> = { google: 'Google', github: 'GitHub' };
+
+// Only offer providers that are switched on in the Supabase dashboard.
+export async function enabledProviders(): Promise<OAuthProvider[]> {
+  if (!cloudConfigured) return [];
+  try {
+    const r = await fetch(`${URL}/auth/v1/settings`, { headers: { apikey: KEY } });
+    const d = await r.json();
+    return (['google', 'github'] as const).filter(p => !!d?.external?.[p]);
+  } catch { return []; }
+}
+
+export async function signInWithProvider(provider: OAuthProvider): Promise<Res<null>> {
+  if (!supabase) return off;
+  try {
+    if (isWeb) { // full-page redirect; supabase-js picks the session up from the URL when we come back
+      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+      return error ? fail(error) : ok(null);
+    }
+    const Linking = require('expo-linking');
+    const WebBrowser = require('expo-web-browser');
+    const redirectTo: string = Linking.createURL('auth-callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+    if (error || !data?.url) return fail(error ?? { message: 'Could not start sign-in' });
+    const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (res.type !== 'success' || !res.url) return fail({ message: 'Sign-in was cancelled' });
+    const params = new URLSearchParams(res.url.split('#')[1] ?? res.url.split('?')[1] ?? '');
+    const access_token = params.get('access_token'), refresh_token = params.get('refresh_token');
+    if (!access_token || !refresh_token) return fail({ message: params.get('error_description') ?? 'Sign-in failed' });
+    const { error: e2 } = await supabase.auth.setSession({ access_token, refresh_token });
+    return e2 ? fail(e2) : ok(null);
+  } catch (e) { return fail(e); }
+}
+
+// A starting username for people who signed in with Google/GitHub (3-20 chars of a-z, 0-9, _).
+export async function suggestedUsername(): Promise<string> {
+  if (!supabase) return '';
+  const { data } = await supabase.auth.getSession();
+  const u = data.session?.user;
+  const raw = (u?.user_metadata?.user_name ?? u?.user_metadata?.preferred_username ?? u?.user_metadata?.name ?? u?.email?.split('@')[0] ?? '') as string;
+  const clean = raw.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20);
+  return clean.length >= 3 ? clean : '';
+}
+
 export async function signOut() { await supabase?.auth.signOut(); }
 export async function resetPassword(email: string): Promise<Res<null>> {
   if (!supabase) return off;

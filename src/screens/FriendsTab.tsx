@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
 import { Button } from '../components/Button';
 import { Progress } from '../storage';
-import { FriendRow, Profile, acceptFriend, cloudConfigured, createProfile, listFriends, removeFriend, requestFriend, resetPassword, signIn, signUp } from '../cloud';
+import { FriendRow, OAuthProvider, PROVIDER_LABEL, Profile, acceptFriend, cloudConfigured, createProfile, enabledProviders, listFriends, removeFriend, requestFriend, resetPassword, signIn, signInWithProvider, signUp, suggestedUsername } from '../cloud';
 import { inviteMessage, shareText } from '../share';
 import { c } from '../theme';
 
@@ -16,6 +16,14 @@ export function AuthForm() {
   const [pw, setPw] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [providers, setProviders] = useState<OAuthProvider[]>([]);
+  useEffect(() => { enabledProviders().then(setProviders); }, []);
+  const social = async (p: OAuthProvider) => {
+    setBusy(true); setMsg('');
+    const r = await signInWithProvider(p);
+    setBusy(false);
+    if (!r.ok) setMsg(r.error);
+  };
   const go = async () => {
     setBusy(true); setMsg('');
     const r = mode === 'up' ? await signUp(email.trim(), pw) : await signIn(email.trim(), pw);
@@ -27,6 +35,11 @@ export function AuthForm() {
     <View>
       <Text style={s.title}>{mode === 'up' ? 'Create account' : 'Sign in'}</Text>
       <Text style={s.mute}>Save your progress in the cloud and compete with friends.</Text>
+      {providers.map(p => (
+        <Pressable key={p} disabled={busy} onPress={() => social(p)} style={s.social}>
+          <Text style={s.socialTxt}>{p === 'google' ? 'G' : '</>'}  Continue with {PROVIDER_LABEL[p]}</Text>
+        </Pressable>))}
+      {providers.length > 0 && <Text style={s.or}>or use email</Text>}
       <Field placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
       <Field placeholder="Password (6+ characters)" value={pw} onChangeText={setPw} secureTextEntry />
       {!!msg && <Text style={s.msg}>{msg}</Text>}
@@ -39,6 +52,7 @@ export function AuthForm() {
 export function UsernameForm({ uid, progress, onProfile }: { uid: string; progress: Progress; onProfile: (p: Profile) => void }) {
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
+  useEffect(() => { suggestedUsername().then(u => setName(cur => cur || u)); }, []);
   return (
     <View>
       <Text style={s.title}>Pick a username</Text>
@@ -130,6 +144,9 @@ const s = StyleSheet.create({
   mute: { color: c.mute, marginBottom: 16 },
   msg: { color: c.gold, marginBottom: 12 },
   input: { backgroundColor: c.card, color: c.text, borderRadius: 14, borderWidth: 2, borderColor: c.line, padding: 14, fontSize: 16, marginBottom: 12 },
+  social: { backgroundColor: c.card, borderColor: c.line, borderWidth: 2, borderRadius: 16, padding: 14, alignItems: 'center', marginBottom: 10 },
+  socialTxt: { color: c.text, fontWeight: '800', fontSize: 16 },
+  or: { color: c.mute, textAlign: 'center', marginVertical: 8, fontSize: 12, fontWeight: '700' },
   link: { color: c.blue, textAlign: 'center', marginTop: 16, fontWeight: '700' },
   addRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   addBtn: { backgroundColor: c.primary, paddingHorizontal: 18, paddingVertical: 15, borderRadius: 14 },
