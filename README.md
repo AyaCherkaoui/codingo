@@ -1,6 +1,6 @@
-# Codingo
+# Bracey
 
-Duolingo-style phone app that teaches everything for the NeetCode 250 in 250 days.
+Ship one problem a day. A phone app that teaches all 250 NeetCode problems in 250 days, with its own mascot (Bracey), streak freezes, combos, sounds and a friends leaderboard.
 One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can finish on your phone.
 
 ## Stack

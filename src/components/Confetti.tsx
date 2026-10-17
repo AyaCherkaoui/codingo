@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, Easing, View } from 'react-native';
 
-const EMOJI = ['🎉', '✨', '⭐', '🟢', '🟡', '🔵', '🧩'];
+const EMOJI = ['🎉', '✨', '⭐', '💜', '💎', '🚀', '{ }', '</>'];
 const { width, height } = Dimensions.get('window');
 
 export function Confetti({ count = 28 }: { count?: number }) {
@@ -20,7 +20,7 @@ export function Confetti({ count = 28 }: { count?: number }) {
     <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
       {parts.map((p, i) => (
         <Animated.Text key={i} style={{
-          position: 'absolute', left: p.x, top: -40, fontSize: p.size,
+          position: 'absolute', left: p.x, top: -40, fontSize: p.size, fontWeight: '900', color: p.e.length > 2 ? (p.size > 24 ? '#22e0a8' : '#a995ff') : undefined,
           opacity: p.v.interpolate({ inputRange: [0, 0.05, 0.85, 1], outputRange: [0, 1, 1, 0] }),
           transform: [
             { translateY: p.v.interpolate({ inputRange: [0, 1], outputRange: [0, height + 60] }) },
