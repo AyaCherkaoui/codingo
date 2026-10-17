@@ -14,8 +14,9 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 4. Reward: XP, streak, hearts, level-up animation
 
 ## Roadmap
-- [ ] v0: lesson screen + question types + XP/streak (one hardcoded lesson)
-- [ ] v1: skill tree (NeetCode topics in order), content loader
+- [x] v0: lesson screen + question types + XP/streak/hearts
+- [x] v1: skill tree with all 150 core NeetCode problems in order, haptics, daily 7pm reminder
+- [ ] Lessons written: days 1-5 of 250 (add more in `src/content/lessons.ts`)
 - [ ] v2: spaced repetition review, daily reminder notifications
 - [ ] v3: all 250 problems, one per day
 

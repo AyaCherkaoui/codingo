@@ -1,34 +1,62 @@
 import React from 'react';
-import { SafeAreaView, Text, View, StyleSheet } from 'react-native';
-import { Lesson } from '../content/types';
+import { Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { units } from '../content/curriculum';
+import { lessonByDay } from '../content/lessons';
 import { Progress } from '../storage';
-import { Button } from '../components/Button';
+import { tap } from '../feedback';
 import { c } from '../theme';
 
-export function Home({ lesson, progress, onStart }: { lesson: Lesson; progress: Progress; onStart: () => void }) {
-  const done = progress.completed.includes(lesson.id);
+const OFFSETS = [0, 46, 70, 46, 0, -46, -70, -46];
+
+export function Home({ progress, onStart }: { progress: Progress; onStart: (day: number) => void }) {
+  // current = first entry not completed
+  const all = units.flatMap(u => u.entries);
+  const current = all.find(e => !progress.completed.includes(e.id))?.day ?? 251;
+
   return (
     <SafeAreaView style={s.root}>
       <View style={s.stats}>
         <Text style={[s.stat, { color: c.orange }]}>🔥 {progress.streak}</Text>
-        <Text style={[s.stat, { color: c.gold }]}>⚡ {progress.xp} XP</Text>
+        <Text style={[s.stat, { color: c.mute }]}>{progress.completed.length}/250</Text>
+        <Text style={[s.stat, { color: c.gold }]}>⚡ {progress.xp}</Text>
       </View>
-      <View style={s.center}>
-        <View style={s.node}><Text style={{ fontSize: 44 }}>{done ? '⭐' : '🧩'}</Text></View>
-        <Text style={s.tag}>Day {lesson.day} / 250</Text>
-        <Text style={s.title}>{lesson.problem}</Text>
-        <Text style={s.mute}>{lesson.topic}</Text>
-      </View>
-      <View style={{ padding: 20 }}><Button label={done ? 'Practice again' : 'Start'} onPress={onStart} /></View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+        {units.map(u => (
+          <View key={u.topic}>
+            <View style={s.banner}><Text style={s.bannerTxt}>{u.topic}</Text></View>
+            {u.entries.map(e => {
+              const done = progress.completed.includes(e.id);
+              const hasContent = lessonByDay.has(e.day);
+              const unlocked = e.day <= current;
+              const playable = hasContent && (unlocked || done);
+              const isCurrent = e.day === current;
+              const bg = done ? c.gold : playable ? c.green : c.line;
+              const shadow = done ? '#c79d00' : playable ? c.greenDark : '#2b3840';
+              return (
+                <View key={e.id} style={{ alignItems: 'center', marginVertical: 8, transform: [{ translateX: OFFSETS[e.day % 8] }] }}>
+                  {isCurrent && hasContent && <Text style={s.start}>START</Text>}
+                  <Pressable disabled={!playable} onPress={() => { tap(); onStart(e.day); }}
+                    style={[s.node, { backgroundColor: bg, borderBottomColor: shadow }]}>
+                    <Text style={s.icon}>{done ? '⭐' : playable ? '🧩' : hasContent ? '🔒' : '🛠️'}</Text>
+                  </Pressable>
+                  <Text style={s.label} numberOfLines={1}>{e.day}. {e.problem}</Text>
+                </View>);
+            })}
+          </View>))}
+        <Text style={s.foot}>More lessons are on the way. Days 151-250 coming soon.</Text>
+      </ScrollView>
     </SafeAreaView>);
 }
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
-  stats: { flexDirection: 'row', justifyContent: 'space-between', padding: 20 },
+  stats: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 2, borderColor: c.line },
   stat: { fontSize: 18, fontWeight: '900' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  node: { width: 110, height: 110, borderRadius: 55, backgroundColor: c.green, borderBottomWidth: 8, borderBottomColor: c.greenDark, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  tag: { color: c.blue, fontWeight: '800' },
-  title: { color: c.text, fontSize: 28, fontWeight: '900', marginTop: 4 },
-  mute: { color: c.mute, marginTop: 4 },
+  banner: { backgroundColor: c.green, margin: 16, marginTop: 28, padding: 14, borderRadius: 16 },
+  bannerTxt: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  node: { width: 76, height: 76, borderRadius: 38, borderBottomWidth: 7, alignItems: 'center', justifyContent: 'center' },
+  icon: { fontSize: 30 },
+  label: { color: c.mute, fontSize: 12, marginTop: 6, maxWidth: 220 },
+  start: { color: c.green, fontWeight: '900', marginBottom: 4 },
+  foot: { color: c.mute, textAlign: 'center', marginTop: 30 },
 });

@@ -4,6 +4,7 @@ import { Lesson, Question } from '../content/types';
 import { Button } from '../components/Button';
 import { QuestionView } from '../components/Questions';
 import { c } from '../theme';
+import { good, bad } from '../feedback';
 
 const HEARTS = 3;
 
@@ -55,7 +56,7 @@ export function LessonScreen({ lesson, onExit, onDone }:
   const q = queue[0];
   const check = () => {
     setResult(!!correct);
-    if (!correct) setHearts(hearts - 1);
+    if (correct) good(); else { bad(); setHearts(hearts - 1); }
   };
   const next = () => {
     if (result) { setQueue(queue.slice(1)); setDone(done + 1); }
