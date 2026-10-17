@@ -7,7 +7,7 @@ export interface Progress {
   hearts: number; heartsAt: number;
   reviews: Record<string, Review>;
   onboarded: boolean; reminderOn: boolean; reminderHour: number;
-  soundOn: boolean; freezes: number;
+  soundOn: boolean; freezes: number; authSkipped: boolean;
 }
 
 export const HEART_MAX = 5;
@@ -19,7 +19,7 @@ export const empty: Progress = {
   xp: 0, streak: 0, bestStreak: 0, lastDay: null, completed: [],
   hearts: HEART_MAX, heartsAt: 0, reviews: {},
   onboarded: false, reminderOn: true, reminderHour: 19,
-  soundOn: true, freezes: 1,
+  soundOn: true, freezes: 1, authSkipped: false,
 };
 export const MAX_FREEZES = 2;
 

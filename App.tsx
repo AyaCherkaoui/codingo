@@ -10,6 +10,7 @@ import { FriendsTab } from './src/screens/FriendsTab';
 import { BadgesTab } from './src/screens/BadgesTab';
 import { SettingsTab } from './src/screens/SettingsTab';
 import { Onboarding } from './src/screens/Onboarding';
+import { AuthGate } from './src/screens/AuthGate';
 import { Celebrate } from './src/components/Celebrate';
 import { setSoundOn } from './src/sound';
 import { Tab, TabBar } from './src/components/TabBar';
@@ -33,6 +34,8 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [syncFailed, setSyncFailed] = useState(false);
   const [nudgeHidden, setNudgeHidden] = useState(false);
+  const [profileUnknown, setProfileUnknown] = useState(false); // offline: don't force the sign-up gate
+  const [authReady, setAuthReady] = useState(!supabase); // session + profile checked
   const ref = useRef<Progress>(empty);
   const uidRef = useRef<string | null>(null);
   const timer = useRef<any>(null);
@@ -60,9 +63,12 @@ export default function App() {
     let unsub: (() => void) | undefined;
     if (supabase) {
       const sync = async (id: string | null) => {
-        uidRef.current = id; setUid(id);
-        if (!id) { setProfile(null); return; }
-        setProfile(await getProfile(id));
+        uidRef.current = id;
+        if (!id) { setUid(null); setProfile(null); setAuthReady(true); return; }
+        setAuthReady(false); setUid(id);
+        const pr = await getProfile(id);
+        setProfileUnknown(pr === undefined); setProfile(pr ?? null);
+        setAuthReady(true);
         const remote = await pullProgress(id);
         // merge into the latest local state so progress made during the pull isn't overwritten
         const merged = update(cur => (remote ? mergeProgress(cur, remote) : cur));
@@ -93,6 +99,14 @@ export default function App() {
     <>
       <StatusBar style="light" />
       <Onboarding onDone={() => { const p = update(x => ({ ...x, onboarded: true })); scheduleDailyReminder(p.reminderHour, p.reminderOn); }} />
+    </>);
+
+  if (cloudConfigured && !authReady) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
+
+  if (cloudConfigured && !progress.authSkipped && !profile && !profileUnknown) return (
+    <>
+      <StatusBar style="light" />
+      <AuthGate uid={uid} progress={progress} onProfile={setProfile} onSkip={() => update(x => ({ ...x, authSkipped: true }))} />
     </>);
 
   const finish = (xp: number) => {

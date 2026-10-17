@@ -10,7 +10,7 @@ function Field(props: React.ComponentProps<typeof TextInput>) {
   return <TextInput placeholderTextColor={c.mute} autoCapitalize="none" autoCorrect={false} {...props} style={[s.input, props.style]} />;
 }
 
-function AuthForm() {
+export function AuthForm() {
   const [mode, setMode] = useState<'in' | 'up'>('up');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
@@ -36,7 +36,7 @@ function AuthForm() {
     </View>);
 }
 
-function UsernameForm({ uid, progress, onProfile }: { uid: string; progress: Progress; onProfile: (p: Profile) => void }) {
+export function UsernameForm({ uid, progress, onProfile }: { uid: string; progress: Progress; onProfile: (p: Profile) => void }) {
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
   return (

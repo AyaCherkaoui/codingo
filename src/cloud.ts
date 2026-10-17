@@ -44,10 +44,14 @@ export async function resetPassword(email: string): Promise<Res<null>> {
   return error ? fail(error) : ok(null);
 }
 
-export async function getProfile(id: string): Promise<Profile | null> {
+// null = signed in but no profile yet; undefined = couldn't reach the server (e.g. offline).
+export async function getProfile(id: string): Promise<Profile | null | undefined> {
   if (!supabase) return null;
-  const { data } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
-  return (data as Profile) ?? null;
+  try {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+    if (error) return undefined;
+    return (data as Profile) ?? null;
+  } catch { return undefined; }
 }
 export async function createProfile(id: string, username: string, p: Progress): Promise<Res<Profile>> {
   if (!supabase) return off;
