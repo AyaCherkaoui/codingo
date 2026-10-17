@@ -4,9 +4,9 @@ import { Progress } from '../storage';
 import { Button } from '../components/Button';
 import { c } from '../theme';
 
-export function SettingsTab({ progress, onChange, onReset, account, onSignOut }: {
+export function SettingsTab({ progress, onChange, onReset, account, onSignOut, onGoAccount }: {
   progress: Progress; onChange: (patch: Partial<Progress>) => void; onReset: () => void;
-  account: string | null; onSignOut: () => void;
+  account: string | null; onSignOut: () => void; onGoAccount?: () => void; // onGoAccount set = online accounts available
 }) {
   const [confirm, setConfirm] = useState(false);
   const h = progress.reminderHour;
@@ -39,6 +39,12 @@ export function SettingsTab({ progress, onChange, onReset, account, onSignOut }:
           </View>
           <Text style={s.note}>Reminders work in the phone app, not in the browser.</Text>
         </View>
+        {!account && onGoAccount && (
+          <View style={s.card}>
+            <Text style={s.label}>Save your progress ☁️</Text>
+            <Text style={s.note}>Sign up (free) to keep your streak on any device and compete with friends.</Text>
+            <View style={{ height: 12 }} /><Button label="Sign up / Sign in" onPress={onGoAccount} />
+          </View>)}
         {account && (
           <View style={s.card}>
             <Text style={s.label}>Signed in as @{account}</Text>

@@ -32,6 +32,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [nudgeHidden, setNudgeHidden] = useState(false);
   const ref = useRef<Progress>(empty);
   const uidRef = useRef<string | null>(null);
   const timer = useRef<any>(null);
@@ -135,6 +136,13 @@ export default function App() {
         <Pressable onPress={push} style={{ backgroundColor: c.card, padding: 8, paddingTop: notice ? 8 : 48 }}>
           <Text style={{ color: c.gold, fontWeight: '800', textAlign: 'center', fontSize: 12 }}>☁️ Couldn't sync. Your progress is safe on this phone. Tap to retry.</Text>
         </Pressable>)}
+      {cloudConfigured && !uid && !nudgeHidden && tab === 'learn' && progress.completed.length > 0 && (
+        <View style={{ backgroundColor: c.card, padding: 10, paddingTop: syncFailed || notice ? 10 : 48, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable style={{ flex: 1 }} onPress={() => setTab('friends')}>
+            <Text style={{ color: c.blue, fontWeight: '800', fontSize: 13 }}>☁️ Sign up to save your streak and compete with friends →</Text>
+          </Pressable>
+          <Pressable onPress={() => setNudgeHidden(true)} hitSlop={10}><Text style={{ color: c.mute, fontSize: 16 }}>✕</Text></Pressable>
+        </View>)}
       {notice && (
         <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: c.card, padding: 12, paddingTop: syncFailed ? 12 : 48 }}>
           <Text style={{ color: c.blue, fontWeight: '800', textAlign: 'center' }}>{notice} (tap to dismiss)</Text>
@@ -147,6 +155,7 @@ export default function App() {
         {tab === 'me' && <SettingsTab progress={progress}
           onChange={patch => { if (patch.soundOn !== undefined) setSoundOn(patch.soundOn); const p = update(x => ({ ...x, ...patch })); if ('reminderOn' in patch || 'reminderHour' in patch) scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
           account={profile?.username ?? null} onSignOut={() => signOut()}
+          onGoAccount={cloudConfigured ? () => setTab('friends') : undefined}
           onReset={async () => { await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }} />}
       </View>
       <TabBar tab={tab} onTab={setTab} dueCount={dueReviews(progress).length} />
