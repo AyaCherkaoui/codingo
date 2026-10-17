@@ -2,10 +2,10 @@ import React from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { c } from '../theme';
 
-export type Tab = 'learn' | 'review' | 'badges' | 'me';
+export type Tab = 'learn' | 'review' | 'friends' | 'badges' | 'me';
 const tabs: { id: Tab; icon: string; label: string }[] = [
   { id: 'learn', icon: '🏠', label: 'Learn' }, { id: 'review', icon: '🔁', label: 'Review' },
-  { id: 'badges', icon: '🏆', label: 'Badges' }, { id: 'me', icon: '⚙️', label: 'Settings' },
+  { id: 'friends', icon: '👥', label: 'Friends' }, { id: 'badges', icon: '🏆', label: 'Badges' }, { id: 'me', icon: '⚙️', label: 'Me' },
 ];
 
 export function TabBar({ tab, onTab, dueCount }: { tab: Tab; onTab: (t: Tab) => void; dueCount: number }) {

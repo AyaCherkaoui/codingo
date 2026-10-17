@@ -6,6 +6,7 @@ import { Lesson } from './src/content/types';
 import { Home } from './src/screens/Home';
 import { LessonScreen } from './src/screens/Lesson';
 import { ReviewTab } from './src/screens/ReviewTab';
+import { FriendsTab } from './src/screens/FriendsTab';
 import { BadgesTab } from './src/screens/BadgesTab';
 import { SettingsTab } from './src/screens/SettingsTab';
 import { Onboarding } from './src/screens/Onboarding';
@@ -15,6 +16,7 @@ import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLess
 import { badges, earnedIds } from './src/badges';
 import { buildReview } from './src/review';
 import { scheduleDailyReminder } from './src/notify';
+import { Profile, cloudConfigured, supabase, getProfile, pullProgress, pushProgress, mergeProgress, signOut } from './src/cloud';
 import { c } from './src/theme';
 
 type Session = { lesson: Lesson; reviewIds?: string[]; nonce: number };
@@ -25,20 +27,43 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('learn');
   const [session, setSession] = useState<Session | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [uid, setUid] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const ref = useRef<Progress>(empty);
+  const uidRef = useRef<string | null>(null);
+  const timer = useRef<any>(null);
 
   const update = useCallback((fn: (p: Progress) => Progress) => {
     const next = fn(ref.current);
     ref.current = next;
     setProgress(next);
     save(next);
+    if (uidRef.current) {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => uidRef.current && pushProgress(uidRef.current, ref.current), 2500);
+    }
     return next;
   }, []);
 
   useEffect(() => {
     load().then(p => { ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
+    let unsub: (() => void) | undefined;
+    if (supabase) {
+      const sync = async (id: string | null) => {
+        uidRef.current = id; setUid(id);
+        if (!id) { setProfile(null); return; }
+        setProfile(await getProfile(id));
+        const remote = await pullProgress(id);
+        const merged = remote ? mergeProgress(ref.current, remote) : ref.current;
+        update(() => merged);
+        pushProgress(id, merged);
+      };
+      supabase.auth.getSession().then(({ data }) => sync(data.session?.user.id ?? null));
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => { sync(session?.user.id ?? null); });
+      unsub = () => sub.subscription.unsubscribe();
+    }
     const t = setInterval(() => { const r = refreshHearts(ref.current); if (r !== ref.current) update(() => r); }, 30000);
-    return () => clearInterval(t);
+    return () => { clearInterval(t); unsub?.(); };
   }, []);
 
   if (!progress) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
@@ -94,9 +119,11 @@ export default function App() {
       <View style={{ flex: 1 }}>
         {tab === 'learn' && <Home progress={progress} onStart={startDay} />}
         {tab === 'review' && <ReviewTab progress={progress} onStart={startReview} />}
+        {tab === 'friends' && <FriendsTab uid={uid} profile={profile} progress={progress} onProfile={setProfile} />}
         {tab === 'badges' && <BadgesTab progress={progress} />}
         {tab === 'me' && <SettingsTab progress={progress}
           onChange={patch => { const p = update(x => ({ ...x, ...patch })); scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
+          account={profile?.username ?? null} onSignOut={() => signOut()}
           onReset={async () => { await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }} />}
       </View>
       <TabBar tab={tab} onTab={setTab} dueCount={dueReviews(progress).length} />

@@ -4,8 +4,9 @@ import { Progress } from '../storage';
 import { Button } from '../components/Button';
 import { c } from '../theme';
 
-export function SettingsTab({ progress, onChange, onReset }: {
+export function SettingsTab({ progress, onChange, onReset, account, onSignOut }: {
   progress: Progress; onChange: (patch: Partial<Progress>) => void; onReset: () => void;
+  account: string | null; onSignOut: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
   const h = progress.reminderHour;
@@ -29,6 +30,12 @@ export function SettingsTab({ progress, onChange, onReset }: {
           </View>
           <Text style={s.note}>Reminders work in the phone app, not in the browser.</Text>
         </View>
+        {account && (
+          <View style={s.card}>
+            <Text style={s.label}>Signed in as @{account}</Text>
+            <Text style={s.note}>Your progress syncs to the cloud automatically.</Text>
+            <View style={{ height: 12 }} /><Button label="Sign out" color={c.blue} shadow="#1590c8" onPress={onSignOut} />
+          </View>)}
         <Button label={confirm ? 'Tap again to erase everything' : 'Reset progress'} color={c.red} shadow={c.redDark}
           onPress={() => { if (confirm) { setConfirm(false); onReset(); } else setConfirm(true); }} />
       </ScrollView>
