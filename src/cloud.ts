@@ -67,6 +67,7 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   const newer = (a.lastDay ?? '') >= (b.lastDay ?? '') ? a : b;
   return {
     ...a, completed, reviews,
+    freezes: Math.min(Math.max(a.freezes, b.freezes), 2),
     xp: Math.max(a.xp, b.xp), bestStreak: Math.max(a.bestStreak, b.bestStreak),
     streak: newer.streak, lastDay: newer.lastDay, onboarded: true,
   };
@@ -77,10 +78,14 @@ export async function pullProgress(uid: string): Promise<Progress | null> {
   const { data } = await supabase.from('user_progress').select('progress').eq('user_id', uid).maybeSingle();
   return (data?.progress as Progress) ?? null;
 }
-export async function pushProgress(uid: string, p: Progress) {
-  if (!supabase) return;
-  await supabase.from('user_progress').upsert({ user_id: uid, progress: p, updated_at: new Date().toISOString() });
-  await supabase.from('profiles').update({ xp: p.xp, streak: p.streak, completed_count: p.completed.length, updated_at: new Date().toISOString() }).eq('id', uid);
+export async function pushProgress(uid: string, p: Progress): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const now = new Date().toISOString();
+    const a = await supabase.from('user_progress').upsert({ user_id: uid, progress: p, updated_at: now });
+    const b = await supabase.from('profiles').update({ xp: p.xp, streak: p.streak, completed_count: p.completed.length, updated_at: now }).eq('id', uid);
+    return !a.error && !b.error;
+  } catch { return false; }
 }
 
 export async function listFriends(uid: string): Promise<Res<FriendRow[]>> {

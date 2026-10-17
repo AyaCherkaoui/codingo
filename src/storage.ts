@@ -23,9 +23,15 @@ export const empty: Progress = {
 };
 export const MAX_FREEZES = 2;
 
-const dayStr = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+// Local calendar day (YYYY-MM-DD), so the day rolls over at the user's midnight, not UTC's.
+export const dayStr = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 export const today = () => dayStr(Date.now());
-const inDays = (n: number) => dayStr(Date.now() + n * 86400000);
+const dayNum = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dayStr(d.getTime()); };
+const yesterday = () => inDays(-1);
 
 export const level = (xp: number) => Math.floor(xp / 100) + 1;
 
@@ -79,18 +85,25 @@ export function finishReview(p: Progress, ids: string[], xp: number): Progress {
   return { ...p, xp: p.xp + xp, ...touchStreak(p), reviews };
 }
 
+// Spend freezes on skipped days, or reset the streak if there aren't enough.
+export function applyMissedDays(p: Progress): Progress {
+  if (!p.lastDay) return p;
+  const missed = dayNum(today()) - dayNum(p.lastDay) - 1; // whole days skipped
+  if (missed <= 0) return p;
+  if (p.freezes >= missed) return { ...p, freezes: p.freezes - missed, lastDay: yesterday() }; // freezes cover the gap
+  return { ...p, streak: 0 };
+}
+
+export let freezesSpentOnLoad = 0; // for a one-time "freeze used" message
+
 export async function load(): Promise<Progress> {
   const raw = await AsyncStorage.getItem(KEY);
-  let p: Progress = raw ? { ...empty, ...JSON.parse(raw) } : { ...empty, heartsAt: Date.now() };
-  if (p.lastDay) {
-    const gap = (Date.parse(today()) - Date.parse(p.lastDay)) / 86400000;
-    const missed = gap - 1; // whole days skipped
-    if (missed > 0) {
-      if (p.freezes >= missed) p = { ...p, freezes: p.freezes - missed, lastDay: dayStr(Date.now() - 86400000) }; // freezes cover the gap
-      else p = { ...p, streak: 0 };
-    }
-  }
-  return refreshHearts(p);
+  const loaded: Progress = raw ? { ...empty, ...JSON.parse(raw) } : { ...empty, heartsAt: Date.now() };
+  const fixed = applyMissedDays(loaded);
+  freezesSpentOnLoad = loaded.freezes - fixed.freezes;
+  const p = refreshHearts(fixed);
+  if (raw && p !== loaded) save(p).catch(() => {}); // persist spent freezes / reset streak
+  return p;
 }
 
 export const save = (p: Progress) => AsyncStorage.setItem(KEY, JSON.stringify(p));

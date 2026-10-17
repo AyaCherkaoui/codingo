@@ -10,5 +10,5 @@ export async function scheduleDailyReminder(hour: number, enabled: boolean) {
       content: { title: 'Bracey misses you 🔥', body: "Ship today's problem and keep your streak alive. 5 minutes." },
       trigger: { type: 'daily', hour, minute: 0 },
     });
-  } catch {}
+  } catch (e) { console.warn('Reminder not scheduled', e); }
 }

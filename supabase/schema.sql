@@ -1,4 +1,4 @@
--- Codingo backend. Run once in Supabase: SQL Editor -> paste -> Run.
+-- Bracey backend. Run once in Supabase: SQL Editor -> paste -> Run.
 
 create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { lessonByDay } from './src/content/lessons';
 import { Lesson } from './src/content/types';
@@ -13,7 +13,7 @@ import { Onboarding } from './src/screens/Onboarding';
 import { Celebrate } from './src/components/Celebrate';
 import { setSoundOn } from './src/sound';
 import { Tab, TabBar } from './src/components/TabBar';
-import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLesson, finishReview, dueReviews, level } from './src/storage';
+import { Progress, empty, load, save, wipe, refreshHearts, loseHeart, finishLesson, finishReview, dueReviews, level, today, freezesSpentOnLoad } from './src/storage';
 import { badges, earnedIds } from './src/badges';
 import { buildReview } from './src/review';
 import { scheduleDailyReminder } from './src/notify';
@@ -30,6 +30,7 @@ export default function App() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const ref = useRef<Progress>(empty);
   const uidRef = useRef<string | null>(null);
   const timer = useRef<any>(null);
@@ -47,7 +48,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    load().then(p => { setSoundOn(p.soundOn); ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
+    load().then(p => { if (freezesSpentOnLoad > 0) setNotice(`🧊 ${freezesSpentOnLoad} streak freeze${freezesSpentOnLoad > 1 ? 's' : ''} used to save your streak!`); setSoundOn(p.soundOn); ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
     let unsub: (() => void) | undefined;
     if (supabase) {
       const sync = async (id: string | null) => {
@@ -55,8 +56,8 @@ export default function App() {
         if (!id) { setProfile(null); return; }
         setProfile(await getProfile(id));
         const remote = await pullProgress(id);
-        const merged = remote ? mergeProgress(ref.current, remote) : ref.current;
-        update(() => merged);
+        // merge into the latest local state so progress made during the pull isn't overwritten
+        const merged = update(cur => (remote ? mergeProgress(cur, remote) : cur));
         pushProgress(id, merged);
       };
       supabase.auth.getSession().then(({ data }) => sync(data.session?.user.id ?? null));
@@ -83,6 +84,7 @@ export default function App() {
     const fresh = earnedIds(next).filter(id => !had.has(id)).map(id => badges.find(b => b.id === id)!).map(b => `${b.icon} ${b.name}`);
     const lv = level(next.xp) > level(before.xp) ? level(next.xp) : null;
     setSession(null);
+    if (uidRef.current) { clearTimeout(timer.current); pushProgress(uidRef.current, next); } // sync right away
     if (fresh.length || lv) setToast({ xp, levelUp: lv, badges: fresh });
   };
 
@@ -98,7 +100,7 @@ export default function App() {
   if (session) return (
     <>
       <StatusBar style="light" />
-      <LessonScreen key={session.nonce} lesson={session.lesson} startHearts={progress.hearts} streak={progress.streak}
+      <LessonScreen key={session.nonce} lesson={session.lesson} startHearts={progress.hearts} streak={progress.lastDay === today() ? progress.streak : progress.streak + 1}
         onWrong={() => update(loseHeart)} onExit={() => setSession(null)} onDone={finish} />
     </>);
 
@@ -111,13 +113,17 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style="light" />
+      {notice && (
+        <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: c.card, padding: 12, paddingTop: 48 }}>
+          <Text style={{ color: c.blue, fontWeight: '800', textAlign: 'center' }}>{notice} (tap to dismiss)</Text>
+        </Pressable>)}
       <View style={{ flex: 1 }}>
         {tab === 'learn' && <Home progress={progress} onStart={startDay} />}
         {tab === 'review' && <ReviewTab progress={progress} onStart={startReview} />}
         {tab === 'friends' && <FriendsTab uid={uid} profile={profile} progress={progress} onProfile={setProfile} />}
         {tab === 'badges' && <BadgesTab progress={progress} />}
         {tab === 'me' && <SettingsTab progress={progress}
-          onChange={patch => { if (patch.soundOn !== undefined) setSoundOn(patch.soundOn); const p = update(x => ({ ...x, ...patch })); scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
+          onChange={patch => { if (patch.soundOn !== undefined) setSoundOn(patch.soundOn); const p = update(x => ({ ...x, ...patch })); if ('reminderOn' in patch || 'reminderHour' in patch) scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
           account={profile?.username ?? null} onSignOut={() => signOut()}
           onReset={async () => { await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }} />}
       </View>

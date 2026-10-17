@@ -5,7 +5,7 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 
 ## Stack
 - Expo (React Native) + TypeScript, runs on iPhone/Android via Expo Go
-- Local-first storage (progress, streak, XP) - no backend needed for v1
+- Local-first storage (progress, streak, XP). Optional Supabase backend for accounts, sync and friends
 
 ## Core loop (1 lesson ≈ 5 min)
 1. Learn: a short card explaining the pattern
@@ -23,7 +23,8 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 - [x] Accounts, cloud sync, friends and leaderboard (Supabase)
 - [x] Animations: confetti, shake, sliding feedback sheet, pulsing current node
 - [x] Share progress and invite friends
-- [ ] Sounds, streak freeze, TestFlight build
+- [x] Sounds, streak freeze (with "freeze used" message)
+- [ ] TestFlight build (needs your Apple developer account: `npx eas-cli build --platform ios`)
 - [ ] More hints, richer questions per lesson
 
 ## Content

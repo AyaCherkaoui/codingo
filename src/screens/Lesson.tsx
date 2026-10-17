@@ -26,9 +26,8 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
   const [mistakes, setMistakes] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
-  const [hintsUsed, setHintsUsed] = useState(0);
-  const [hintOn, setHintOn] = useState(false);
-  const [eliminated, setEliminated] = useState<number | string | null>(null);
+  const [hints, setHints] = useState<{ q: Question; elim: number | string | null }[]>([]); // each question's hint is paid for once
+  const hintsUsed = hints.length;
   const [xpShown, setXpShown] = useState(0);
   const total = lesson.questions.length;
   const teaching = card < lesson.teach.length;
@@ -106,12 +105,12 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
           <View style={s.chips}>
             <View style={s.chip}><Text style={s.chipV}>{acc}%</Text><Text style={s.chipL}>accuracy</Text></View>
             <View style={s.chip}><Text style={s.chipV}>x{Math.max(bestCombo, 1)}</Text><Text style={s.chipL}>best combo</Text></View>
-            <View style={s.chip}><Text style={s.chipV}>{streak + 1}{ICON.streak}</Text><Text style={s.chipL}>streak</Text></View>
+            <View style={s.chip}><Text style={s.chipV}>{streak}{ICON.streak}</Text><Text style={s.chipL}>streak</Text></View>
           </View>
         </View>
         <Confetti />
         <View style={s.pad}>
-          <Pressable onPress={() => shareText(`${ICON.streak} ${streak + 1}-day streak! Just shipped "${lesson.problem}" on Bracey. Learn LeetCode 5 min a day: ${REPO}`)}>
+          <Pressable onPress={() => shareText(`${ICON.streak} ${streak}-day streak! Just shipped "${lesson.problem}" on Bracey. Learn LeetCode 5 min a day: ${REPO}`)}>
             <Text style={s.share}>📣 Share with friends</Text>
           </Pressable>
           <Button label="Claim XP" onPress={() => onDone(xp)} />
@@ -126,20 +125,24 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
     if (correct) { good(); setMsg(pick(WIN)); const n = combo + 1; setCombo(n); setBestCombo(b => Math.max(b, n)); }
     else { bad(); setMsg(pick(LOSE)); setHearts(hearts - 1); setMistakes(mistakes + 1); setCombo(0); onWrong(); }
   };
+  const hinted = hints.find(h => h.q === q);
+  const hintOn = !!hinted;
+  const eliminated = hinted?.elim ?? null;
   const useHint = () => {
-    setHintOn(true); setHintsUsed(h => h + 1);
+    let elim: number | string | null = null;
     if (q.type === 'choice') {
       const wrong = q.options.map((_, i) => i).filter(i => i !== q.answer);
-      setEliminated(wrong[Math.floor(Math.random() * wrong.length)]);
+      elim = wrong[Math.floor(Math.random() * wrong.length)];
     } else if (q.type === 'blank') {
       const wrong = q.options.filter(o => o !== q.answer);
-      setEliminated(wrong[Math.floor(Math.random() * wrong.length)]);
+      elim = wrong[Math.floor(Math.random() * wrong.length)];
     }
+    setHints(h => [...h, { q, elim }]);
   };
   const next = () => {
     if (result) { setQueue(queue.slice(1)); setDone(done + 1); }
     else setQueue([...queue.slice(1), q]);
-    setResult(null); setCorrect(null); setHintOn(false); setEliminated(null);
+    setResult(null); setCorrect(null);
   };
 
   return (
