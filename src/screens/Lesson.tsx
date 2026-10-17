@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { Animated, Easing, Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { Lesson, Question } from '../content/types';
 import { Button } from '../components/Button';
 import { QuestionView } from '../components/Questions';
 import { good, bad } from '../feedback';
+import { Confetti } from '../components/Confetti';
+import { shareText, REPO } from '../share';
 import { c } from '../theme';
 
-export function LessonScreen({ lesson, startHearts, onWrong, onExit, onDone }: {
-  lesson: Lesson; startHearts: number; onWrong: () => void; onExit: () => void; onDone: (xp: number) => void;
+const teaching0 = (card: number, lesson: Lesson) => card < lesson.teach.length;
+
+export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onDone }: {
+  lesson: Lesson; startHearts: number; streak: number; onWrong: () => void; onExit: () => void; onDone: (xp: number) => void;
 }) {
   const [card, setCard] = useState(0);
   const [queue, setQueue] = useState<Question[]>(lesson.questions);
@@ -20,15 +24,30 @@ export function LessonScreen({ lesson, startHearts, onWrong, onExit, onDone }: {
   const total = lesson.questions.length;
   const teaching = card < lesson.teach.length;
   const pop = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+  const sheet = useRef(new Animated.Value(0)).current;
+  const prog = useRef(new Animated.Value(0)).current;
+  const [xpShown, setXpShown] = useState(0);
+  const target = teaching0(card, lesson) ? 0 : done / total;
+  useEffect(() => { Animated.timing(prog, { toValue: target, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [target]);
+  useEffect(() => {
+    if (result === null) { sheet.setValue(0); return; }
+    Animated.spring(sheet, { toValue: 1, friction: 8, tension: 90, useNativeDriver: true }).start();
+    if (result === false) Animated.sequence([-10, 10, -8, 8, -4, 0].map(v => Animated.timing(shake, { toValue: v, duration: 50, useNativeDriver: true }))).start();
+  }, [result]);
   const finished = !teaching && queue.length === 0;
   useEffect(() => {
-    if (finished) Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+    if (!finished) return;
+    Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+    const xp = Math.max(5, 10 + (total - mistakes) * 3);
+    const id = setInterval(() => setXpShown(v => { if (v >= xp) { clearInterval(id); return xp; } return v + 1; }), 40);
+    return () => clearInterval(id);
   }, [finished]);
 
   const header = (
     <View style={s.head}>
       <Pressable onPress={onExit}><Text style={s.x}>✕</Text></Pressable>
-      <View style={s.bar}><View style={[s.fill, { width: `${(teaching ? 0 : done / total) * 100}%` }]} /></View>
+      <View style={s.bar}><Animated.View style={[s.fill, { width: prog.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} /></View>
       <Text style={s.hearts}>❤️ {hearts}</Text>
     </View>
   );
@@ -52,13 +71,17 @@ export function LessonScreen({ lesson, startHearts, onWrong, onExit, onDone }: {
     const xp = Math.max(5, 10 + (total - mistakes) * 3);
     return (
       <SafeAreaView style={s.root}>
+        <Confetti />
         <View style={s.center}>
           <Animated.Text style={{ fontSize: 80, textAlign: 'center', transform: [{ scale: pop }] }}>🎉</Animated.Text>
           <Text style={[s.big, { textAlign: 'center' }]}>{lesson.day === 0 ? 'Review done!' : 'Lesson complete!'}</Text>
-          <Text style={[s.body, { color: c.gold, textAlign: 'center' }]}>+{xp} XP</Text>
+          <Text style={[s.body, { color: c.gold, textAlign: 'center' }]}>+{xpShown} XP</Text>
           <Text style={[s.mute, { textAlign: 'center', marginTop: 8 }]}>{mistakes === 0 ? 'Perfect, no mistakes!' : `${mistakes} mistake${mistakes > 1 ? 's' : ''}`}</Text>
         </View>
-        <View style={s.pad}><Button label="Claim XP" onPress={() => onDone(xp)} /></View>
+        <View style={s.pad}>
+          <Pressable onPress={() => shareText(`🔥 ${streak + 1}-day streak! I just learned "${lesson.problem}" on Codingo. Join me: ${REPO}`)}><Text style={s.share}>📣 Share with friends</Text></Pressable>
+          <Button label="Claim XP" onPress={() => onDone(xp)} />
+        </View>
       </SafeAreaView>);
   }
 
@@ -77,7 +100,9 @@ export function LessonScreen({ lesson, startHearts, onWrong, onExit, onDone }: {
   return (
     <SafeAreaView style={s.root}>{header}
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <QuestionView key={`${done}-${queue.length}-${hearts}`} q={q} locked={result !== null} onChange={setCorrect} />
+        <Animated.View style={{ transform: [{ translateX: shake }] }}>
+          <QuestionView key={`${done}-${queue.length}-${hearts}`} q={q} locked={result !== null} onChange={setCorrect} />
+        </Animated.View>
         {q.hint && result === null && (
           hint ? <Text style={s.hint}>💡 {q.hint}</Text>
                : <Pressable onPress={() => setHint(true)}><Text style={s.hintBtn}>💡 Need a hint?</Text></Pressable>)}
@@ -85,11 +110,11 @@ export function LessonScreen({ lesson, startHearts, onWrong, onExit, onDone }: {
       {result === null ? (
         <View style={s.pad}><Button label="Check" disabled={correct === null} onPress={check} /></View>
       ) : (
-        <View style={[s.sheet, { backgroundColor: result ? '#1f3a12' : '#40191a' }]}>
+        <Animated.View style={[s.sheet, { backgroundColor: result ? '#1f3a12' : '#40191a', transform: [{ translateY: sheet.interpolate({ inputRange: [0, 1], outputRange: [220, 0] }) }] }]}>
           <Text style={[s.sheetTitle, { color: result ? c.green : c.red }]}>{result ? 'Nice! ✅' : 'Not quite ❌'}</Text>
           <Text style={s.sheetBody}>{q.explain}</Text>
           <Button label="Continue" onPress={next} color={result ? c.green : c.red} shadow={result ? c.greenDark : c.redDark} />
-        </View>)}
+        </Animated.View>)}
     </SafeAreaView>);
 }
 
@@ -106,6 +131,7 @@ const s = StyleSheet.create({
   big: { color: c.text, fontSize: 30, fontWeight: '900', marginBottom: 12 },
   body: { color: c.text, fontSize: 20, lineHeight: 28 },
   mute: { color: c.mute, fontSize: 16 },
+  share: { color: c.blue, fontWeight: '800', textAlign: 'center', marginBottom: 14, fontSize: 15 },
   hintBtn: { color: c.blue, fontWeight: '800', marginTop: 12 },
   hint: { color: c.gold, marginTop: 12, fontSize: 15 },
   sheet: { padding: 20, gap: 10 },

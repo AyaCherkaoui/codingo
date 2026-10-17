@@ -72,7 +72,7 @@ export default function App() {
   if (session) return (
     <>
       <StatusBar style="light" />
-      <LessonScreen key={session.nonce} lesson={session.lesson} startHearts={progress.hearts}
+      <LessonScreen key={session.nonce} lesson={session.lesson} startHearts={progress.hearts} streak={progress.streak}
         onWrong={() => update(loseHeart)} onExit={() => setSession(null)} onDone={finish} />
     </>);
 

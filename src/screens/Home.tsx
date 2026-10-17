@@ -1,10 +1,23 @@
-import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { units } from '../content/curriculum';
 import { lessonByDay } from '../content/lessons';
 import { Progress, level, minutesToNextHeart } from '../storage';
 import { tap } from '../feedback';
 import { c } from '../theme';
+
+function Pulse({ children, on }: { children: React.ReactNode; on: boolean }) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!on) return;
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(v, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(v, { toValue: 0, duration: 800, useNativeDriver: true })]));
+    a.start();
+    return () => a.stop();
+  }, [on]);
+  return <Animated.View style={{ transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }}>{children}</Animated.View>;
+}
 
 const OFFSETS = [0, 46, 70, 46, 0, -46, -70, -46];
 
@@ -42,10 +55,12 @@ export function Home({ progress, onStart }: { progress: Progress; onStart: (day:
               return (
                 <View key={e.id} style={{ alignItems: 'center', marginVertical: 8, transform: [{ translateX: OFFSETS[e.day % 8] }] }}>
                   {isCurrent && hasContent && <Text style={s.start}>START</Text>}
-                  <Pressable disabled={!playable} onPress={() => { tap(); onStart(e.day); }}
-                    style={[s.node, { backgroundColor: bg, borderBottomColor: shadow }]}>
-                    <Text style={s.icon}>{done ? '⭐' : playable ? '🧩' : hasContent ? '🔒' : '🛠️'}</Text>
-                  </Pressable>
+                  <Pulse on={isCurrent && playable}>
+                    <Pressable disabled={!playable} onPress={() => { tap(); onStart(e.day); }}
+                      style={({ pressed }) => [s.node, { backgroundColor: bg, borderBottomColor: shadow }, pressed && { transform: [{ translateY: 4 }], borderBottomWidth: 3 }]}>
+                      <Text style={s.icon}>{done ? '⭐' : playable ? '🧩' : hasContent ? '🔒' : '🛠️'}</Text>
+                    </Pressable>
+                  </Pulse>
                   <Text style={s.label} numberOfLines={1}>{e.day}. {e.problem}</Text>
                 </View>);
             })}

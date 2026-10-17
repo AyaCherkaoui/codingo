@@ -1,7 +1,8 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { badges } from '../badges';
 import { Progress, level } from '../storage';
+import { shareText, progressMessage } from '../share';
 import { c } from '../theme';
 
 export function BadgesTab({ progress }: { progress: Progress }) {
@@ -12,6 +13,9 @@ export function BadgesTab({ progress }: { progress: Progress }) {
         <Text style={s.title}>Level {level(progress.xp)}</Text>
         <View style={s.bar}><View style={[s.fill, { width: `${xpInLevel}%` }]} /></View>
         <Text style={s.mute}>{xpInLevel}/100 XP to next level · Best streak {progress.bestStreak} 🔥</Text>
+        <Pressable onPress={() => shareText(progressMessage(progress.streak, progress.completed.length, progress.xp))} style={s.share}>
+          <Text style={s.shareTxt}>📣 SHARE MY PROGRESS</Text>
+        </Pressable>
         {badges.map(b => {
           const got = b.earned(progress);
           return (
@@ -29,6 +33,8 @@ const s = StyleSheet.create({
   bar: { height: 14, borderRadius: 7, backgroundColor: c.line, overflow: 'hidden' },
   fill: { height: 14, backgroundColor: c.blue },
   mute: { color: c.mute, marginTop: 8, marginBottom: 20 },
+  share: { backgroundColor: c.blue, borderRadius: 14, padding: 14, alignItems: 'center', marginBottom: 16 },
+  shareTxt: { color: '#fff', fontWeight: '900', letterSpacing: 0.8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.card, padding: 14, borderRadius: 14, marginBottom: 10 },
   icon: { fontSize: 30 },
   name: { color: c.text, fontWeight: '800', fontSize: 16 },
