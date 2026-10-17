@@ -1,16 +1,38 @@
 import { Lesson, Question } from './types';
 import { allEntries } from './curriculum';
-import { day1 } from './day001-contains-duplicate';
 
 type Body = { teach: string[]; questions: Question[] };
-const make = (day: number, b: Body): Lesson => {
-  const e = allEntries[day - 1];
-  return { id: e.id, day, problem: e.problem, topic: e.topic, ...b };
+const make = (problem: string, b: Body): Lesson => {
+  const e = allEntries.find(x => x.problem === problem);
+  if (!e) throw new Error(`Unknown problem: ${problem}`);
+  return { id: e.id, day: e.day, problem, topic: e.topic, ...b };
 };
 
 const days: Lesson[] = [
-  day1,
-  make(2, {
+  make('Concatenation of Array', {
+    teach: [
+      'Concatenation of Array: return an array that is nums followed by nums again.',
+      'In Python, nums + nums does it. Or loop twice and append. O(n) time.',
+    ],
+    questions: [
+      { type: 'choice', prompt: 'nums = [1,2,1]. What is the answer?', options: ['[1,2,1]', '[1,2,1,1,2,1]', '[2,4,2]', '[1,1,2,2,1,1]'], answer: 1, explain: 'The array repeated back to back.' },
+      { type: 'choice', prompt: 'Length of the result for n elements?', options: ['n', '2n', 'n²', 'n+1'], answer: 1, explain: 'Two copies of n elements.' },
+      { type: 'blank', prompt: 'Fill in the blank', code: 'def getConcatenation(nums):\n    return nums ___ nums', options: ['+', '*', '-'], answer: '+', explain: 'Lists join with + in Python.' },
+    ],
+  }),
+  make('Contains Duplicate', {
+    teach: [
+      'A hash set stores unique values and checks "have I seen this?" in O(1).',
+      'Walk the array once. If a value is already in the set, you found a duplicate.',
+    ],
+    questions: [
+      { type: 'choice', prompt: 'Which structure gives O(1) "seen before?" checks?', options: ['Array', 'Hash set', 'Linked list', 'Stack'], answer: 1, explain: 'Hash sets look up values in O(1) on average.' },
+      { type: 'order', prompt: 'Put the algorithm in order', steps: ['Create empty set', 'Loop over nums', 'If n in set, return true', 'Add n to set', 'Return false'], explain: 'Check before adding, otherwise every value looks like a duplicate.' },
+      { type: 'blank', prompt: 'Fill in the blank', code: 'seen = set()\nfor n in nums:\n    if n in ___:\n        return True', options: ['seen', 'nums', 'set'], answer: 'seen', explain: 'We check the set of values we have already seen.' },
+      { type: 'bug', prompt: 'Tap the buggy line', lines: ['seen = set()', 'for n in nums:', '    seen.add(n)', '    if n in seen:', '        return True', 'return False'], buggyLine: 2, explain: 'Adding before checking makes every number look like a duplicate.' },
+    ],
+  }),
+  make('Valid Anagram', {
     teach: [
       'Two strings are anagrams if they use exactly the same letters with the same counts.',
       'Count letters in both strings (hash map or 26-slot array) and compare the counts. O(n) time.',
@@ -22,7 +44,7 @@ const days: Lesson[] = [
       { type: 'blank', prompt: 'Fill in the blank', code: 'count = {}\nfor ch in s:\n    count[ch] = count.get(ch, ___) + 1', options: ['0', '1', 'None'], answer: '0', explain: 'A missing letter starts at 0.' },
     ],
   }),
-  make(3, {
+  make('Two Sum', {
     teach: [
       'Two Sum: find two indices whose values add to target.',
       'For each n, the partner you need is target - n. Store seen values in a hash map {value: index}.',
@@ -35,7 +57,18 @@ const days: Lesson[] = [
       { type: 'bug', prompt: 'Tap the buggy line', lines: ['seen = {}', 'for i, n in enumerate(nums):', '    seen[n] = i', '    if target - n in seen:', '        return [seen[target - n], i]'], buggyLine: 2, explain: 'Adding first lets n pair with itself. Check first, then add.' },
     ],
   }),
-  make(4, {
+  make('Longest Common Prefix', {
+    teach: [
+      'Longest Common Prefix: the longest start that every string shares.',
+      'Take the first string as the candidate. Compare it with each other string and shorten it until it matches. O(total characters).',
+    ],
+    questions: [
+      { type: 'choice', prompt: '["flower","flow","flight"] -> ?', options: ['"flow"', '"fl"', '"f"', '""'], answer: 1, explain: 'All three start with "fl".' },
+      { type: 'choice', prompt: '["dog","car"] -> ?', options: ['"d"', '"c"', '"" (empty)', '"dog"'], answer: 2, explain: 'No shared start, so the answer is empty.' },
+      { type: 'order', prompt: 'Order the algorithm', steps: ['Set prefix to the first string', 'Loop over the other strings', 'While string does not start with prefix, trim prefix', 'Return prefix'], explain: 'Shrink the prefix until each string agrees.' },
+    ],
+  }),
+  make('Group Anagrams', {
     teach: [
       'Group Anagrams: bucket words that are anagrams of each other.',
       'Anagrams share a key: the sorted word, or a 26-count tuple. Use a dict mapping key -> list of words.',
@@ -46,7 +79,7 @@ const days: Lesson[] = [
       { type: 'order', prompt: 'Order the algorithm', steps: ['Make empty dict of lists', 'Loop over words', 'Compute key for the word', 'Append word to dict[key]', 'Return dict values'], explain: 'Build the groups, then return them.' },
     ],
   }),
-  make(5, {
+  make('Top K Frequent Elements', {
     teach: [
       'Top K Frequent: return the k most common values.',
       'Count with a hash map, then bucket sort: index = frequency, value = list of numbers. Walk buckets from the highest frequency down. O(n).',

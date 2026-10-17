@@ -43,7 +43,7 @@ export function Home({ progress, onStart }: { progress: Progress; onStart: (day:
                 </View>);
             })}
           </View>))}
-        <Text style={s.foot}>More lessons are on the way. Days 151-250 coming soon.</Text>
+        <Text style={s.foot}>More lessons are on the way.</Text>
       </ScrollView>
     </SafeAreaView>);
 }

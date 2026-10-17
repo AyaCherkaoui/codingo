@@ -15,8 +15,8 @@ One tiny lesson a day, streaks, XP, hearts, and bite-size questions you can fini
 
 ## Roadmap
 - [x] v0: lesson screen + question types + XP/streak/hearts
-- [x] v1: skill tree with all 150 core NeetCode problems in order, haptics, daily 7pm reminder
-- [ ] Lessons written: days 1-5 of 250 (add more in `src/content/lessons.ts`)
+- [x] v1: skill tree with all 250 problems in order, haptics, daily 7pm reminder
+- [ ] Lessons written: 5 of 250 (Concatenation of Array, Contains Duplicate, Valid Anagram, Two Sum, Longest Common Prefix, Group Anagrams, Top K Frequent) (add more in `src/content/lessons.ts`)
 - [ ] v2: spaced repetition review, daily reminder notifications
 - [ ] v3: all 250 problems, one per day
 
