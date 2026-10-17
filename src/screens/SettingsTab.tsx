@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { Progress } from '../storage';
 import { Button } from '../components/Button';
+import { FeedbackCard } from '../components/FeedbackCard';
 import { c } from '../theme';
 
 export function SettingsTab({ progress, onChange, onReset, account, onSignOut, onGoAccount }: {
@@ -51,6 +52,7 @@ export function SettingsTab({ progress, onChange, onReset, account, onSignOut, o
             <Text style={s.note}>Your progress syncs to the cloud automatically.</Text>
             <View style={{ height: 12 }} /><Button label="Sign out" color={c.blue} shadow="#1590c8" onPress={onSignOut} />
           </View>)}
+        <FeedbackCard />
         <Button label={confirm ? 'Tap again to erase everything' : 'Reset progress'} color={c.bad} shadow={c.badDark}
           onPress={() => { if (confirm) { setConfirm(false); onReset(); } else setConfirm(true); }} />
       </ScrollView>

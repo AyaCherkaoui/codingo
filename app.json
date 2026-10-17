@@ -32,7 +32,8 @@
     "plugins": [
       "expo-status-bar",
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      ["expo-image-picker", { "photosPermission": "Bracey uses your photos so you can attach a screenshot to your feedback." }]
     ],
     "scheme": "bracey",
     "backgroundColor": "#0d0a1f",

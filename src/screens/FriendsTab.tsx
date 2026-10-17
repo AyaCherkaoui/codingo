@@ -16,9 +16,11 @@ export function AuthForm() {
   const [pw, setPw] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const [providers, setProviders] = useState<OAuthProvider[]>([]);
-  useEffect(() => { enabledProviders().then(setProviders); }, []);
+  const [enabled, setEnabled] = useState<OAuthProvider[] | null>(null);
+  useEffect(() => { enabledProviders().then(setEnabled); }, []);
+  const providers: OAuthProvider[] = ['google', 'github'];
   const social = async (p: OAuthProvider) => {
+    if (enabled && !enabled.includes(p)) { setMsg(`${PROVIDER_LABEL[p]} sign-in isn't switched on yet. Use email for now.`); return; }
     setBusy(true); setMsg('');
     const r = await signInWithProvider(p);
     setBusy(false);
@@ -39,7 +41,7 @@ export function AuthForm() {
         <Pressable key={p} disabled={busy} onPress={() => social(p)} style={s.social}>
           <Text style={s.socialTxt}>{p === 'google' ? 'G' : '</>'}  Continue with {PROVIDER_LABEL[p]}</Text>
         </Pressable>))}
-      {providers.length > 0 && <Text style={s.or}>or use email</Text>}
+      {<Text style={s.or}>or use email</Text>}
       <Field placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
       <Field placeholder="Password (6+ characters)" value={pw} onChangeText={setPw} secureTextEntry />
       {!!msg && <Text style={s.msg}>{msg}</Text>}

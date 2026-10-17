@@ -106,7 +106,7 @@ export default function App() {
   if (cloudConfigured && !progress.authSkipped && !profile && !profileUnknown) return (
     <>
       <StatusBar style="light" />
-      <AuthGate uid={uid} progress={progress} onProfile={setProfile} onSkip={() => update(x => ({ ...x, authSkipped: true }))} />
+      <AuthGate uid={uid} progress={progress} onProfile={setProfile} />
     </>);
 
   const finish = (xp: number) => {
