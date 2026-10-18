@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../cloud';
 import { Pressable, Text, TextInput, View, StyleSheet } from 'react-native';
 import { Button } from './Button';
 import { FeedbackKind, Screenshot, pickScreenshot, sendFeedback } from '../reportFeedback';
@@ -12,6 +13,8 @@ export function FeedbackCard({ defaultContact }: { defaultContact?: string }) {
   const [contact, setContact] = useState(defaultContact ?? '');
   const [shot, setShot] = useState<Screenshot | null>(null);
   const [busy, setBusy] = useState(false);
+  // signed in? use their email so they don't have to type it
+  useEffect(() => { supabase?.auth.getSession().then(({ data }) => { const e = data.session?.user.email; if (e) setContact(cur => cur || e); }); }, []);
   const [note, setNote] = useState('');
   const send = async () => {
     setBusy(true); setNote('');

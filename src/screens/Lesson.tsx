@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lesson, Question } from '../content/types';
+import { Card, Lesson, Question } from '../content/types';
 import { Button } from '../components/Button';
 import { Appear } from '../components/Appear';
 import { Bubble } from '../components/Bubble';
@@ -17,29 +17,41 @@ import { c, ICON } from '../theme';
 function hintText(q: Question): string {
   if (q.hint) return q.hint;
   if (q.type === 'order') return `The first step is: ${q.steps[0]}`;
+  if (q.type === 'match') return 'Start with the item you are most sure about.';
   if (q.type === 'bug') { const half = Math.ceil(q.lines.length / 2); return q.buggyLine < half ? 'The bug is in the top half of the code.' : 'The bug is in the bottom half of the code.'; }
   return 'One wrong answer removed.';
 }
 
-export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onDone }: {
+// Where the learner is, so a reload (or switching apps) resumes instead of starting over.
+export interface Snap { card: number; queue: number[]; done: number; mistakes: number; combo: number; bestCombo: number; hearts: number }
+
+export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onDone, initial, onSnap }: {
   lesson: Lesson; startHearts: number; streak: number; onWrong: () => void; onExit: () => void; onDone: (xp: number) => void;
+  initial?: Snap | null; onSnap?: (s: Snap | null) => void;
 }) {
-  const [card, setCard] = useState(0);
-  const [queue, setQueue] = useState<Question[]>(lesson.questions);
-  const [hearts, setHearts] = useState(startHearts);
+  const [card, setCard] = useState(initial?.card ?? 0);
+  const [peek, setPeek] = useState<number | null>(null); // re-reading the lesson while answering
+  const [queue, setQueue] = useState<Question[]>(initial ? initial.queue.map(i => lesson.questions[i]).filter(Boolean) : lesson.questions);
+  const [hearts, setHearts] = useState(initial?.hearts ?? startHearts);
   const [correct, setCorrect] = useState<boolean | null>(null);
   const [result, setResult] = useState<boolean | null>(null);
   const [msg, setMsg] = useState('');
-  const [done, setDone] = useState(0);
-  const [mistakes, setMistakes] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [bestCombo, setBestCombo] = useState(0);
+  const [done, setDone] = useState(initial?.done ?? 0);
+  const [mistakes, setMistakes] = useState(initial?.mistakes ?? 0);
+  const [combo, setCombo] = useState(initial?.combo ?? 0);
+  const [bestCombo, setBestCombo] = useState(initial?.bestCombo ?? 0);
   const [hints, setHints] = useState<{ q: Question; elim: number | string | null }[]>([]); // each question's hint is paid for once
   const hintsUsed = hints.length;
   const [xpShown, setXpShown] = useState(0);
   const total = lesson.questions.length;
-  const teaching = card < lesson.teach.length;
+  const cards: Card[] = lesson.teach.map(t => (typeof t === 'string' ? { text: t } : t));
+  const teaching = card < cards.length;
   const finished = !teaching && queue.length === 0;
+  useEffect(() => {
+    if (!onSnap) return;
+    if (finished || hearts === 0) { onSnap(null); return; }
+    onSnap({ card, queue: queue.map(q => lesson.questions.indexOf(q)).filter(i => i >= 0), done, mistakes, combo, bestCombo, hearts });
+  }, [card, queue, done, mistakes, combo, bestCombo, hearts, finished]);
   const xp = Math.max(5, 10 + (total - mistakes) * 3 - hintsUsed * 2 + Math.min(bestCombo, 5));
 
   const shake = useRef(new Animated.Value(0)).current;
@@ -88,19 +100,30 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
       <View style={s.pad}><Button label="Back" onPress={onExit} color={c.bad} shadow={c.badDark} /></View>
     </SafeAreaView>);
 
-  if (teaching) return (
+  if (teaching || peek !== null) {
+    const ci = teaching ? card : (peek as number);
+    const go = (n: number) => (teaching ? setCard(n) : setPeek(n));
+    const last = ci === cards.length - 1;
+    return (
     <SafeAreaView style={s.root}>{header}
       <ScrollView contentContainerStyle={s.center}>
         <Text style={s.tag}>{lesson.topic} · Day {lesson.day}</Text>
         <Text style={s.big}>{lesson.problem}</Text>
-        <Appear key={card} from="right">
-          <Bubble>{lesson.teach[card]}</Bubble>
+        <Appear key={ci} from="right">
+          {cards[ci].title && <Text style={s.cardTitle}>{cards[ci].title}</Text>}
+          <Bubble>{cards[ci].text}</Bubble>
+          {cards[ci].code && <View style={s.codeBox}><Text style={s.codeTxt}>{cards[ci].code}</Text></View>}
+          {cards[ci].foot && <Text style={s.foot}>{cards[ci].foot}</Text>}
         </Appear>
         <View style={{ marginTop: 22, marginLeft: 12 }}><Mascot size={120} mood="think" /></View>
-        <View style={s.dots}>{lesson.teach.map((_, i) => <View key={i} style={[s.dot, i === card && { backgroundColor: c.primaryLight, width: 22 }]} />)}</View>
+        <View style={s.dots}>{cards.map((_, i) => <View key={i} style={[s.dot, i === ci && { backgroundColor: c.primaryLight, width: 22 }]} />)}</View>
       </ScrollView>
-      <View style={s.pad}><Button label={card === lesson.teach.length - 1 ? "Let's code" : 'Next'} onPress={() => setCard(card + 1)} /></View>
+      <View style={s.pad}>
+        {ci > 0 && <Pressable onPress={() => go(ci - 1)}><Text style={s.back}>← Back</Text></Pressable>}
+        <Button label={last ? (teaching ? "Let's code" : 'Back to the question') : 'Next'} onPress={() => (last && !teaching ? setPeek(null) : go(ci + 1))} />
+      </View>
     </SafeAreaView>);
+  }
 
   if (finished) {
     const acc = Math.round(((total) / (total + mistakes)) * 100);
@@ -158,6 +181,10 @@ export function LessonScreen({ lesson, startHearts, streak, onWrong, onExit, onD
       {combo >= 2 && result === null && (
         <Animated.View style={[s.combo, { transform: [{ scale: comboPop }] }]}><Text style={s.comboTxt}>⚡ x{combo} combo</Text></Animated.View>)}
       <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {cards.length > 0 && result === null && (
+          <Pressable onPress={() => setPeek(0)} style={s.ctx}>
+            <Text style={s.ctxTxt} numberOfLines={2}>📖 {lesson.day > 0 ? lesson.problem : lesson.topic}{lesson.day > 0 ? ' · tap to re-read the lesson' : ''}</Text>
+          </Pressable>)}
         <Animated.View style={{ transform: [{ translateX: shake }] }}>
           <Appear key={`${done}-${queue.length}-${hearts}`} from="right">
             <QuestionView q={q} locked={result !== null} onChange={setCorrect} eliminated={eliminated} />
@@ -192,6 +219,13 @@ const s = StyleSheet.create({
   tag: { color: c.primaryLight, fontWeight: '800', marginBottom: 8, letterSpacing: 0.5 },
   big: { color: c.text, fontSize: 30, fontWeight: '900', marginBottom: 16 },
   mute: { color: c.mute, fontSize: 16 },
+  back: { color: c.blue, fontWeight: '800', fontSize: 15, textAlign: 'center', marginBottom: 12 },
+  ctx: { backgroundColor: c.card, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 16 },
+  ctxTxt: { color: c.primaryLight, fontWeight: '700', fontSize: 13 },
+  cardTitle: { color: c.primaryLight, fontWeight: '900', fontSize: 15, marginBottom: 10, letterSpacing: 0.3 },
+  codeBox: { backgroundColor: c.card, borderRadius: 14, padding: 14, marginTop: 12 },
+  codeTxt: { color: c.text, fontFamily: 'Menlo', fontSize: 13 },
+  foot: { color: c.mute, fontSize: 14, marginTop: 12, lineHeight: 20 },
   dots: { flexDirection: 'row', gap: 6, marginTop: 24, justifyContent: 'center' },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.line },
   xp: { color: c.gold, fontSize: 44, fontWeight: '900', textAlign: 'center', marginVertical: 6 },

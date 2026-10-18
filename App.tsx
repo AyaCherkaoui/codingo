@@ -4,12 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import { lessonByDay } from './src/content/lessons';
 import { Lesson } from './src/content/types';
 import { Home } from './src/screens/Home';
-import { LessonScreen } from './src/screens/Lesson';
+import { LessonScreen, Snap } from './src/screens/Lesson';
 import { ReviewTab } from './src/screens/ReviewTab';
 import { FriendsTab } from './src/screens/FriendsTab';
 import { BadgesTab } from './src/screens/BadgesTab';
 import { SettingsTab } from './src/screens/SettingsTab';
 import { Onboarding } from './src/screens/Onboarding';
+import { buildCodeReview, buildExam } from './src/exams';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthGate } from './src/screens/AuthGate';
 import { Celebrate } from './src/components/Celebrate';
 import { setSoundOn } from './src/sound';
@@ -21,7 +23,10 @@ import { scheduleDailyReminder } from './src/notify';
 import { Profile, cloudConfigured, supabase, getProfile, pullProgress, pushProgress, mergeProgress, signOut } from './src/cloud';
 import { c } from './src/theme';
 
-type Session = { lesson: Lesson; reviewIds?: string[]; nonce: number };
+type Session = { lesson: Lesson; reviewIds?: string[]; nonce: number; snap?: Snap | null };
+const SESSION_KEY = 'codingo-session-v1';
+const saveSession = (v: { lesson: Lesson; reviewIds?: string[]; snap: Snap; ts: number } | null) =>
+  (v ? AsyncStorage.setItem(SESSION_KEY, JSON.stringify(v)) : AsyncStorage.removeItem(SESSION_KEY)).catch(() => {});
 type Toast = { xp: number; levelUp: number | null; badges: string[] };
 
 export default function App() {
@@ -60,6 +65,14 @@ export default function App() {
 
   useEffect(() => {
     load().then(p => { if (freezesSpentOnLoad > 0) setNotice(`🧊 ${freezesSpentOnLoad} streak freeze${freezesSpentOnLoad > 1 ? 's' : ''} used to save your streak!`); setSoundOn(p.soundOn); ref.current = p; setProgress(p); scheduleDailyReminder(p.reminderHour, p.reminderOn && p.onboarded); });
+    // resume a lesson that was in progress (page reload, app killed, or switching apps)
+    AsyncStorage.getItem(SESSION_KEY).then(raw => {
+      try {
+        const v = raw ? JSON.parse(raw) : null;
+        if (v?.lesson?.questions && v.snap && Date.now() - v.ts < 12 * 3600 * 1000) setSession({ lesson: v.lesson, reviewIds: v.reviewIds, nonce: Date.now(), snap: v.snap });
+        else if (raw) saveSession(null);
+      } catch { saveSession(null); }
+    }).catch(() => {});
     let unsub: (() => void) | undefined;
     if (supabase) {
       const sync = async (id: string | null) => {
@@ -71,7 +84,7 @@ export default function App() {
         setAuthReady(true);
         const remote = await pullProgress(id);
         // merge into the latest local state so progress made during the pull isn't overwritten
-        const merged = update(cur => (remote ? mergeProgress(cur, remote) : cur));
+        update(cur => (remote ? mergeProgress(cur, remote) : cur));
         push();
       };
       supabase.auth.getSession().then(({ data }) => sync(data.session?.user.id ?? null));
@@ -116,7 +129,7 @@ export default function App() {
     const had = new Set(earnedIds(before));
     const fresh = earnedIds(next).filter(id => !had.has(id)).map(id => badges.find(b => b.id === id)!).map(b => `${b.icon} ${b.name}`);
     const lv = level(next.xp) > level(before.xp) ? level(next.xp) : null;
-    setSession(null);
+    setSession(null); saveSession(null);
     clearTimeout(timer.current); push(); // sync right away
     if (fresh.length || lv) setToast({ xp, levelUp: lv, badges: fresh });
   };
@@ -130,11 +143,21 @@ export default function App() {
     if (r) setSession({ lesson: r.lesson, reviewIds: r.ids, nonce: Date.now() });
   };
 
+  const startCodeReview = () => {
+    const r = buildCodeReview(ref.current.completed);
+    if (r) setSession({ lesson: r.lesson, reviewIds: r.ids, nonce: Date.now() });
+  };
+  const startExam = (topic: string) => {
+    const r = buildExam(topic, ref.current.completed);
+    if (r) setSession({ lesson: r.lesson, reviewIds: r.ids, nonce: Date.now() });
+  };
+
   if (session) return (
     <>
       <StatusBar style="light" />
       <LessonScreen key={session.nonce} lesson={session.lesson} startHearts={progress.hearts} streak={progress.lastDay === today() ? progress.streak : progress.streak + 1}
-        onWrong={() => update(loseHeart)} onExit={() => setSession(null)} onDone={finish} />
+        onWrong={() => update(loseHeart)} onExit={() => { setSession(null); saveSession(null); }} onDone={finish}
+        initial={session.snap} onSnap={snap => { if (snap) saveSession({ lesson: session.lesson, reviewIds: session.reviewIds, snap, ts: Date.now() }); else saveSession(null); }} />
     </>);
 
   if (toast) return (
@@ -163,12 +186,12 @@ export default function App() {
         </Pressable>)}
       <View style={{ flex: 1 }}>
         {tab === 'learn' && <Home progress={progress} onStart={startDay} />}
-        {tab === 'review' && <ReviewTab progress={progress} onStart={startReview} />}
+        {tab === 'review' && <ReviewTab progress={progress} onStart={startReview} onCode={startCodeReview} onExam={startExam} />}
         {tab === 'friends' && <FriendsTab uid={uid} profile={profile} progress={progress} onProfile={setProfile} />}
         {tab === 'badges' && <BadgesTab progress={progress} />}
         {tab === 'me' && <SettingsTab progress={progress}
           onChange={patch => { if (patch.soundOn !== undefined) setSoundOn(patch.soundOn); const p = update(x => ({ ...x, ...patch })); if ('reminderOn' in patch || 'reminderHour' in patch) scheduleDailyReminder(p.reminderHour, p.reminderOn); }}
-          account={profile?.username ?? null} onSignOut={() => signOut()}
+          account={profile?.username ?? null} onSignOut={async () => { clearTimeout(timer.current); await push(); await signOut(); await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }}
           onGoAccount={cloudConfigured ? () => setTab('friends') : undefined}
           onReset={async () => { await wipe(); const p = await load(); ref.current = p; setProgress(p); setTab('learn'); }} />}
       </View>

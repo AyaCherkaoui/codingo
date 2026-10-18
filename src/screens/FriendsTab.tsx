@@ -43,9 +43,9 @@ export function AuthForm() {
         </Pressable>))}
       {<Text style={s.or}>or use email</Text>}
       <Field placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-      <Field placeholder="Password (6+ characters)" value={pw} onChangeText={setPw} secureTextEntry />
+      <Field placeholder="Password (8+, letters and numbers)" value={pw} onChangeText={setPw} secureTextEntry />
       {!!msg && <Text style={s.msg}>{msg}</Text>}
-      <Button label={busy ? '...' : mode === 'up' ? 'Sign up' : 'Sign in'} disabled={busy || !email || pw.length < 6} onPress={go} />
+      <Button label={busy ? '...' : mode === 'up' ? 'Sign up' : 'Sign in'} disabled={busy || !email || pw.length < 8} onPress={go} />
       <Pressable onPress={() => setMode(mode === 'up' ? 'in' : 'up')}><Text style={s.link}>{mode === 'up' ? 'Have an account? Sign in' : 'New here? Create account'}</Text></Pressable>
       {mode === 'in' && <Pressable onPress={async () => { const r = await resetPassword(email.trim()); setMsg(r.ok ? 'Password reset email sent.' : r.error); }}><Text style={s.link}>Forgot password?</Text></Pressable>}
     </View>);

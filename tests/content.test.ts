@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { allLessons as lessons, lessonByDay, lessonById } from '../src/content/lessons';
 import { allEntries } from '../src/content/curriculum';
+import { codeMatches } from '../src/content/check';
 
 describe('curriculum content', () => {
   it('has all 250 lessons, one per day, matching the curriculum', () => {
@@ -28,11 +29,33 @@ describe('curriculum content', () => {
           expect(q.code, where).toContain('___');
         } else if (q.type === 'bug') {
           expect(q.buggyLine, where).toBeGreaterThanOrEqual(0); expect(q.buggyLine, where).toBeLessThan(q.lines.length);
+        } else if (q.type === 'match') {
+          expect(q.pairs.length, where).toBeGreaterThanOrEqual(2);
+          expect(new Set(q.pairs.map(p => p[0])).size, `${where} duplicate match left`).toBe(q.pairs.length);
+          expect(new Set(q.pairs.map(p => p[1])).size, `${where} duplicate match right`).toBe(q.pairs.length);
+        } else if (q.type === 'write') {
+          expect(q.expected.length, where).toBeGreaterThan(0);
+          if (q.level === 'full') expect(codeMatches(q.solution, q.expected), `${where} solution must satisfy its own check`).toBe(true);
+          else expect(q.solution.replace(/\s+/g, ' '), `${where} solution must contain the expected part`).toContain(q.expected[0].replace(/\s+/g, ' '));
         } else if (q.type === 'order') {
           expect(q.steps.length, where).toBeGreaterThanOrEqual(2);
           expect(new Set(q.steps).size, `${where} duplicate steps`).toBe(q.steps.length);
         }
       }
+    }
+  });
+
+  it('every lesson ends with a coding task', () => {
+    const missing = lessons.filter(l => l.questions.at(-1)!.type !== 'write').map(l => l.problem);
+    expect(missing).toEqual([]);
+  });
+  it('guided lessons go brute force -> optimal and end by typing code', () => {
+    const rich = lessons.filter(l => l.rich);
+    expect(rich.length).toBeGreaterThanOrEqual(3);
+    for (const l of rich) {
+      expect(l.rich!.approaches.length, l.problem).toBeGreaterThanOrEqual(2);
+      expect(l.teach.length, l.problem).toBeGreaterThanOrEqual(5);
+      expect(l.questions.some(q => q.type === 'match'), l.problem).toBe(true);
     }
   });
 });

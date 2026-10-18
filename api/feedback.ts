@@ -1,12 +1,14 @@
 // Vercel serverless function: turns app feedback into an issue in a PRIVATE GitHub repo.
 // Env (Vercel project settings): GITHUB_TOKEN (fine-grained, Issues + Contents: read/write on that repo only),
-// FEEDBACK_REPO ("owner/name" of the private repo).
+// FEEDBACK_REPO ("owner/name" of the private repo). Optional: FEEDBACK_ALLOWED_ORIGIN.
 const MAX_IMAGE_B64 = 3_400_000; // ~2.5 MB image, under Vercel's 4.5 MB body limit
 
+const ALLOWED_ORIGIN = process.env.FEEDBACK_ALLOWED_ORIGIN ?? 'https://bracey.vercel.app';
+const hits = new Map<string, number[]>(); // best-effort per-instance rate limit: 5 reports / hour / user
 const cors = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 export default async function handler(req: any, res: any) {
@@ -16,6 +18,17 @@ export default async function handler(req: any, res: any) {
 
   const token = process.env.GITHUB_TOKEN, repo = process.env.FEEDBACK_REPO;
   if (!token || !repo) return res.status(503).json({ error: 'Feedback is not set up yet.' });
+
+  // Only signed-in users may send feedback: verify the Supabase session token.
+  const sbUrl = process.env.EXPO_PUBLIC_SUPABASE_URL, sbKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  const bearer = String(req.headers?.authorization ?? '');
+  if (!sbUrl || !sbKey || !bearer.startsWith('Bearer ')) return res.status(401).json({ error: 'Please sign in to send feedback.' });
+  const who = await fetch(`${sbUrl}/auth/v1/user`, { headers: { apikey: sbKey, Authorization: bearer } });
+  if (!who.ok) return res.status(401).json({ error: 'Please sign in to send feedback.' });
+  const uid: string = (await who.json()).id;
+  const now = Date.now(), recent = (hits.get(uid) ?? []).filter(t => now - t < 3_600_000);
+  if (recent.length >= 5) return res.status(429).json({ error: 'You have sent a lot of feedback. Try again in a bit.' });
+  hits.set(uid, [...recent, now]);
 
   const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {};
   const message = String(b.message ?? '').trim().slice(0, 4000);

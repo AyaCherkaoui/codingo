@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { supabase } from './cloud';
 
 const BASE = process.env.EXPO_PUBLIC_FEEDBACK_URL ?? (Platform.OS === 'web' ? '' : 'https://bracey.vercel.app');
 export type FeedbackKind = 'bug' | 'idea' | 'other';
@@ -16,8 +17,11 @@ export async function pickScreenshot(): Promise<Screenshot | null> {
 
 export async function sendFeedback(o: { kind: FeedbackKind; message: string; contact?: string; shot?: Screenshot | null }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    const { data } = (await supabase?.auth.getSession()) ?? { data: { session: null } };
+    const token = data.session?.access_token;
+    if (!token) return { ok: false, error: 'Please sign in to send feedback.' };
     const r = await fetch(`${BASE}/api/feedback`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ kind: o.kind, message: o.message, contact: o.contact, image: o.shot?.base64, mime: o.shot?.mime, app: `Bracey ${Platform.OS}` }),
     });
     const d = await r.json().catch(() => ({}));

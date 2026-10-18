@@ -10,7 +10,7 @@ export const cloudConfigured = !!URL && !!KEY;
 const isWeb = typeof document !== 'undefined';
 
 export const supabase = cloudConfigured
-  ? createClient(URL, KEY, { auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: isWeb } })
+  ? createClient(URL, KEY, { auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: isWeb, flowType: 'pkce' } })
   : null;
 
 export interface Profile { id: string; username: string; xp: number; streak: number; completed_count: number }
@@ -67,10 +67,11 @@ export async function signInWithProvider(provider: OAuthProvider): Promise<Res<n
     if (error || !data?.url) return fail(error ?? { message: 'Could not start sign-in' });
     const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
     if (res.type !== 'success' || !res.url) return fail({ message: 'Sign-in was cancelled' });
-    const params = new URLSearchParams(res.url.split('#')[1] ?? res.url.split('?')[1] ?? '');
-    const access_token = params.get('access_token'), refresh_token = params.get('refresh_token');
-    if (!access_token || !refresh_token) return fail({ message: params.get('error_description') ?? 'Sign-in failed' });
-    const { error: e2 } = await supabase.auth.setSession({ access_token, refresh_token });
+    const q = res.url.split('?')[1]?.split('#')[0] ?? '';
+    const params = new URLSearchParams(q);
+    const code = params.get('code');
+    if (!code) return fail({ message: params.get('error_description') ?? 'Sign-in failed' });
+    const { error: e2 } = await supabase.auth.exchangeCodeForSession(code); // PKCE: no tokens ever appear in the URL
     return e2 ? fail(e2) : ok(null);
   } catch (e) { return fail(e); }
 }
@@ -105,10 +106,12 @@ export async function createProfile(id: string, username: string, p: Progress): 
   if (!supabase) return off;
   const u = username.trim().toLowerCase();
   if (!/^[a-z0-9_]{3,20}$/.test(u)) return fail({ message: 'Use 3-20 letters, numbers or _' });
-  const row = { id, username: u, xp: p.xp, streak: p.streak, completed_count: p.completed.length };
+  const row = { id, username: u };
   const { data, error } = await supabase.from('profiles').insert(row).select().single();
   if (error) return fail(error.code === '23505' ? { message: 'That username is taken' } : error);
-  return ok(data as Profile);
+  await pushProgress(id, p); // fills in stats (server trigger or legacy update)
+  const { data: fresh } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+  return ok((fresh ?? data) as Profile);
 }
 
 export { mergeProgress } from './merge';
@@ -123,8 +126,10 @@ export async function pushProgress(uid: string, p: Progress): Promise<boolean> {
   try {
     const now = new Date().toISOString();
     const a = await supabase.from('user_progress').upsert({ user_id: uid, progress: p, updated_at: now });
-    const b = await supabase.from('profiles').update({ xp: p.xp, streak: p.streak, completed_count: p.completed.length, updated_at: now }).eq('id', uid);
-    return !a.error && !b.error;
+    // After the security migration the server derives xp/streak/completed_count from the row above and this update is
+    // rejected (ignored on purpose). Before it, this keeps the leaderboard working.
+    await supabase.from('profiles').update({ xp: p.xp, streak: p.streak, completed_count: p.completed.length, updated_at: now }).eq('id', uid);
+    return !a.error;
   } catch { return false; }
 }
 

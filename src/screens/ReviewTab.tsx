@@ -3,9 +3,11 @@ import { SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { Progress, dueReviews } from '../storage';
 import { lessonById } from '../content/lessons';
 import { Button } from '../components/Button';
+import { units } from '../content/curriculum';
+import { unitDone } from '../exams';
 import { c } from '../theme';
 
-export function ReviewTab({ progress, onStart }: { progress: Progress; onStart: () => void }) {
+export function ReviewTab({ progress, onStart, onCode, onExam }: { progress: Progress; onStart: () => void; onCode: () => void; onExam: (topic: string) => void }) {
   const due = dueReviews(progress);
   return (
     <SafeAreaView style={s.root}>
@@ -17,6 +19,16 @@ export function ReviewTab({ progress, onStart }: { progress: Progress; onStart: 
           {due.slice(0, 8).map(id => <Text key={id} style={s.item}>• {lessonById.get(id)?.problem ?? id}</Text>)}
         </View>
         <Button label="Start review" disabled={due.length === 0} onPress={onStart} />
+        <Text style={s.sec}>Code review 💻</Text>
+        <Text style={s.mute}>Type, fill and debug code from lessons you finished.</Text>
+        <Button label="Start code review" disabled={progress.completed.length === 0} onPress={onCode} color={c.blue} shadow="#1590c8" />
+        <Text style={s.sec}>Exams 🎓</Text>
+        <Text style={s.mute}>Pass a unit's lessons to open its cumulative exam. It mixes that unit with everything before it.</Text>
+        {units.map(u => {
+          const open = unitDone(u.topic, progress.completed);
+          return open ? <View key={u.topic} style={{ marginBottom: 10 }}><Button label={`${u.topic} exam`} onPress={() => onExam(u.topic)} color={c.gold} shadow="#c9a020" /></View>
+            : <Text key={u.topic} style={s.locked}>🔒 {u.topic} · {u.entries.filter(e => progress.completed.includes(e.id)).length}/{u.entries.length} lessons</Text>;
+        })}
       </ScrollView>
     </SafeAreaView>);
 }
@@ -26,5 +38,7 @@ const s = StyleSheet.create({
   mute: { color: c.mute, marginBottom: 20 },
   card: { backgroundColor: c.card, borderRadius: 16, padding: 16, marginBottom: 20 },
   big: { color: c.text, fontSize: 20, fontWeight: '800', marginBottom: 8 },
+  sec: { color: c.text, fontSize: 20, fontWeight: '900', marginTop: 28, marginBottom: 6 },
+  locked: { color: c.mute, fontSize: 14, marginBottom: 8 },
   item: { color: c.mute, fontSize: 15, marginTop: 4 },
 });

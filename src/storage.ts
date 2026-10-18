@@ -98,11 +98,13 @@ export let freezesSpentOnLoad = 0; // for a one-time "freeze used" message
 
 export async function load(): Promise<Progress> {
   const raw = await AsyncStorage.getItem(KEY);
-  const loaded: Progress = raw ? { ...empty, ...JSON.parse(raw) } : { ...empty, heartsAt: Date.now() };
+  let stored: Partial<Progress> | null = null;
+  try { const v = raw ? JSON.parse(raw) : null; if (v && typeof v === 'object' && !Array.isArray(v)) stored = v; } catch { /* corrupt save: start fresh instead of crashing */ }
+  const loaded: Progress = stored ? { ...empty, ...stored } : { ...empty, heartsAt: Date.now() };
   const fixed = applyMissedDays(loaded);
   freezesSpentOnLoad = loaded.freezes - fixed.freezes;
   const p = refreshHearts(fixed);
-  if (raw && p !== loaded) save(p).catch(() => {}); // persist spent freezes / reset streak
+  if (stored && p !== loaded) save(p).catch(() => {}); // persist spent freezes / reset streak
   return p;
 }
 

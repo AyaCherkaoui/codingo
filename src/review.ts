@@ -13,6 +13,6 @@ export function buildReview(dueIds: string[], max = 6): { lesson: Lesson; ids: s
   const pick = pool.slice(0, max);
   return {
     ids: [...new Set(pick.map(x => x.id))],
-    lesson: { id: 'review', day: 0, problem: 'Review', topic: 'Spaced review', teach: [], questions: pick.map(x => x.q) },
+    lesson: { id: 'review', day: 0, problem: 'Review', topic: 'Spaced review', teach: [], questions: pick.map(x => ({ ...x.q, src: lessonById.get(x.id)?.problem })) },
   };
 }
